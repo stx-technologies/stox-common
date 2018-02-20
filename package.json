@@ -1,0 +1,48 @@
+{
+  "name": "stox-common",
+  "version": "1.0.0",
+  "description": "Package for common stox backend logic",
+  "main": "src/index.js",
+  "scripts": {
+    "lint:fix": "prettier-eslint --write \"src/**/*.js\" && eslint src",
+    "precommit": "eslint src",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://bitbucket.org/eladh-wd/stox-common.git"
+  },
+  "keywords": [
+    "stox"
+  ],
+  "author": "",
+  "license": "ISC",
+  "homepage": "https://bitbucket.org/eladh-wd/stox-common#readme",
+  "dependencies": {
+    "@welldone-software/node-toolbelt": "^1.2.0",
+    "body-parser": "^1.18.2",
+    "compression": "^1.7.1",
+    "cors": "^2.8.4",
+    "express": "^4.16.2",
+    "express-history-api-fallback": "^2.2.1",
+    "express-status-monitor": "^1.0.1",
+    "lusca": "^1.5.2",
+    "pg": "^7.4.1",
+    "pg-hstore": "^2.3.2",
+    "sequelize": "^4.33.4",
+    "web3": "^1.0.0-beta.30"
+  },
+  "pre-commit": [
+    "precommit"
+  ],
+  "devDependencies": {
+    "eslint": "^4.17.0",
+    "eslint-config-airbnb-base": "^12.1.0",
+    "eslint-plugin-import": "^2.8.0",
+    "eslint-plugin-node": "^6.0.0",
+    "pre-commit": "^1.2.2",
+    "prettier": "^1.10.2",
+    "prettier-eslint": "^8.8.1",
+    "prettier-eslint-cli": "^4.7.1"
+  }
+}
