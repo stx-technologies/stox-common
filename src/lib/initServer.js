@@ -69,8 +69,9 @@ const createServer = (port, builderFunc = defaultBuilder) => ({
     builderFunc(Builder(config))
     const app = express()
     initExpress(app, config)
-
-    await dbInit(config.databaseUrl, defaultConfig.models)
+    if (config.databaseUrl) {
+      await dbInit(config.databaseUrl, defaultConfig.models)
+    }
     return new Promise((resolve, reject) => {
       try {
         const server = app.listen(port, () => {
