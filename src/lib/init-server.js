@@ -11,43 +11,42 @@ const lusca = require('lusca')
 const cors = require('cors')
 const {dbInit} = require('./db-connect')
 
-const defaultExpressOptions = {
-  enableCors: false,
-  clientRoot: '',
-}
-
 const initRouter = (initRoutes) => {
   const router = new express.Router()
   initRoutes(router, createApiEndpoint)
   return router
 }
 
-const initExpress = (app, initRoutes, options = {}) => {
-  const opts = {...defaultExpressOptions, ...options}
-  if (opts.enableCors) {
+const Builder = app => ({
+  enableCors() {
     app.use(cors({credentials: true, origin: true}))
-  }
+  },
+  enableClient(clientRootDist) {
+    app.use(lusca.xframe('SAMEORIGIN'))
+    app.use(lusca.xssProtection(true))
+    app.use(express.static(clientRootDist))
+    app.use(fallback('index.html', {root: clientRootDist}))
+  },
+})
+const defaultBuilder = (builder = Builder()) => {
+
+}
+
+const initExpress = (app, initRoutes, builderFunc = defaultBuilder) => {
   app.use(compression())
   app.use(bodyParser.json())
   app.use(expressLogger())
-  if (opts.clientRoot) {
-    app.use(lusca.xframe('SAMEORIGIN'))
-    app.use(lusca.xssProtection(true))
-  }
+  builderFunc(Builder(app))
   app.set('trust proxy', 'loopback')
   app.disable('x-powered-by')
   app.use('/api/v1', initRouter(initRoutes))
-  if (opts.clientRoot) {
-    app.use(express.static(opts.clientRoot))
-    app.use(fallback('index.html', {root: opts.clientRoot}))
-  }
   app.use(expressStatusMonitor())
   app.use(errorHandler)
 }
 
-const initServer = async (port, databaseUrl, initRoutes, dbModel, options = defaultExpressOptions) => {
+const initServer = async (port, databaseUrl, initRoutes, dbModel, builderFunc = defaultBuilder) => {
   const app = express()
-  initExpress(app, initRoutes, options)
+  initExpress(app, initRoutes, builderFunc)
   await dbInit(databaseUrl, dbModel)
   return new Promise((resolve, reject) => {
     try {
