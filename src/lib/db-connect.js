@@ -23,7 +23,7 @@ const connect = async (pgurl = null, sequelizeModels) => {
     logging: false,
   })
 
-  await sequelizeInstance.authenticate()
+  await sequelizeInstance.authenticate({retry: {max: 20}})
   logger.info('database connection established successfully.')
 
   sequelizeModels(sequelizeInstance)
@@ -38,9 +38,7 @@ const dbInit = async (pgurl = null, dbModel) => {
     return await connect(pgurl, dbModel)
   } catch (error) {
     logger.error(error)
-    await asyncTimeout(30000)
-    logger.info('retrying...')
-    return dbInit(pgurl)
+    throw error
   }
 }
 

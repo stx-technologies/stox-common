@@ -4,38 +4,50 @@ const bodyParser = require('body-parser')
 const expressStatusMonitor = require('express-status-monitor')
 const {
   loggers: {logger, expressLogger},
-  expressHelpers: {errorHandler},
+  expressHelpers: {errorHandler, createApiEndpoint},
 } = require('@welldone-software/node-toolbelt')
 const fallback = require('express-history-api-fallback')
 const lusca = require('lusca')
 const cors = require('cors')
 const {dbInit} = require('./db-connect')
 
-const initExpress = (app, apiRouter, enableCors = false, clientRoot) => {
-  if (enableCors) {
+const defaultExpressOptions = {
+  enableCors: false,
+  clientRoot: '',
+}
+
+const initRouter = (initRoutes) => {
+  const router = new express.Router()
+  initRoutes(router, createApiEndpoint)
+  return router
+}
+
+const initExpress = (app, initRoutes, options = {}) => {
+  const opts = {...defaultExpressOptions, ...options}
+  if (opts.enableCors) {
     app.use(cors({credentials: true, origin: true}))
   }
   app.use(compression())
   app.use(bodyParser.json())
   app.use(expressLogger())
-  if (clientRoot) {
+  if (opts.clientRoot) {
     app.use(lusca.xframe('SAMEORIGIN'))
     app.use(lusca.xssProtection(true))
   }
   app.set('trust proxy', 'loopback')
   app.disable('x-powered-by')
-  app.use('/api/v1', apiRouter)
-  if (clientRoot) {
-    app.use(express.static(clientRoot))
-    app.use(fallback('index.html', {root: clientRoot}))
+  app.use('/api/v1', initRouter(initRoutes))
+  if (opts.clientRoot) {
+    app.use(express.static(opts.clientRoot))
+    app.use(fallback('index.html', {root: opts.clientRoot}))
   }
   app.use(expressStatusMonitor())
   app.use(errorHandler)
 }
 
-const initServer = async (port, databaseUrl, apiRouter, dbModel) => {
+const initServer = async (port, databaseUrl, initRoutes, dbModel, options = defaultExpressOptions) => {
   const app = express()
-  initExpress(app, apiRouter)
+  initExpress(app, initRoutes, options)
   await dbInit(databaseUrl, dbModel)
   return new Promise((resolve, reject) => {
     try {
@@ -53,4 +65,5 @@ const initServer = async (port, databaseUrl, apiRouter, dbModel) => {
 module.exports = {
   initServer,
   initExpress,
+  initRouter,
 }
