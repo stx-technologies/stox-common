@@ -70,7 +70,7 @@ const initExpress = (app, config = defaultConfig) => {
 
 const createServer = (port, builderFunc = defaultBuilder) => ({
   async start() {
-    const config = defaultConfig
+    const config = Object.assign({}, defaultConfig)
     builderFunc(Builder(config))
     const app = express()
     initExpress(app, config)
