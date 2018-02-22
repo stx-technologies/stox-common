@@ -3,7 +3,7 @@ const compression = require('compression')
 const bodyParser = require('body-parser')
 const expressStatusMonitor = require('express-status-monitor')
 const {
-  expressJwt: {jwtMiddlware},
+  jwtMiddlewares: {jwtRequest},
   loggers: {logger, expressLogger},
   expressHelpers: {errorHandler, createApiEndpoint},
 } = require('@welldone-software/node-toolbelt')
@@ -25,7 +25,7 @@ const defaultBuilder = (builder = Builder()) => {}
 const initRouter = (initRoutes, jwtSecret = '') => {
   const router = new express.Router()
   if (jwtSecret) {
-    router.use(jwtMiddlware(jwtSecret))
+    router.use(jwtRequest(jwtSecret))
   }
   initRoutes(router, createApiEndpoint)
   return router
