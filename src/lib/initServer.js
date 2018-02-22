@@ -75,7 +75,7 @@ const createServer = (port, builderFunc = defaultBuilder) => ({
     const app = express()
     initExpress(app, config)
     if (config.databaseUrl) {
-      await dbInit(config.databaseUrl, defaultConfig.models)
+      await dbInit(config.databaseUrl, config.models)
     }
     return new Promise((resolve, reject) => {
       try {
