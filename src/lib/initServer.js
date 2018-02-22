@@ -3,6 +3,7 @@ const compression = require('compression')
 const bodyParser = require('body-parser')
 const expressStatusMonitor = require('express-status-monitor')
 const {
+  expressJwt: {jwtMiddlware},
   loggers: {logger, expressLogger},
   expressHelpers: {errorHandler, createApiEndpoint},
 } = require('@welldone-software/node-toolbelt')
@@ -17,11 +18,15 @@ const defaultConfig = {
   databaseUrl: '',
   models: () => {},
   initRoutesFunc: (router, createApiEndpoint) => {},
+  jwtSecret: '',
 }
 const defaultBuilder = (builder = Builder()) => {}
 
-const initRouter = (initRoutes) => {
+const initRouter = (initRoutes, jwtSecret = '') => {
   const router = new express.Router()
+  if (jwtSecret) {
+    router.use(jwtMiddlware(jwtSecret))
+  }
   initRoutes(router, createApiEndpoint)
   return router
 }
@@ -37,11 +42,11 @@ const Builder = config => ({
     config.databaseUrl = databaseUrl
     config.models = models
   },
-  initRoutes(initRoutesFunc) {
+  initRoutes(initRoutesFunc, jwtSecret = '') {
     config.initRoutesFunc = initRoutesFunc
+    config.jwtSecret = jwtSecret
   },
 })
-
 
 const initExpress = (app, config = defaultConfig) => {
   if (config.cors) {
@@ -58,7 +63,7 @@ const initExpress = (app, config = defaultConfig) => {
   }
   app.set('trust proxy', 'loopback')
   app.disable('x-powered-by')
-  app.use('/api/v1', initRouter(config.initRoutesFunc))
+  app.use('/api/v1', initRouter(config.initRoutesFunc, config.jwtSecret))
   app.use(expressStatusMonitor())
   app.use(errorHandler)
 }
@@ -88,6 +93,4 @@ const createServer = (port, builderFunc = defaultBuilder) => ({
 
 module.exports = {
   createServer,
-  initExpress,
-  initRouter,
 }
