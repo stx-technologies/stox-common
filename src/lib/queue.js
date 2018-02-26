@@ -1,58 +1,66 @@
 const stompit = require('stompit')
-const {promisify} = require('util')
+const {loggers: {logger}} = require('@welldone-software/node-toolbelt')
 
-let client
-const subscribeQueue = (queueName, handler) =>
-  new Promise((resolve, reject) => {
-    const subscribeHeaders = {
-      destination: queueName,
-      ack: 'client-individual',
-    }
-    client.subscribe(subscribeHeaders, (subscriptionError, message) => {
-      if (subscriptionError) {
-        reject(subscriptionError)
-        return
-      }
+const connect = connectionManager =>
+  new Promise((resolve, reject) =>
+    connectionManager.connect((error, client) => (error ? reject(error) : resolve(client))))
 
-      message.readString('utf-8', (messageError, body) => {
-        if (messageError) {
-          reject(messageError)
-          return
-        }
+const getMessageBody = msg =>
+  new Promise((resolve, reject) => msg.readString('utf-8', (error, body) => (error ? reject(error) : resolve(body))))
 
-        resolve(handler(JSON.parse(body)))
+const init = async (connectionUrl) => {
+  const servers = [connectionUrl]
 
-        client.ack(message)
-      })
-    })
-  })
+  const connectionManager = new stompit.ConnectFailover(servers, {maxReconnects: 10})
+  const connection = await connect(connectionManager)
+  const channel = new stompit.Channel(connectionManager)
 
-const sendToQueue = (destination, message) => {
-  const frame = client.send({
-    destination,
-    'content-type': 'application/json',
-  })
-  frame.write(JSON.stringify(message))
-  frame.end()
+  process.once('SIGINT', () => connection.close())
+
+  return {channel, connection}
 }
 
-const queueInit = async ({host, port, user: login, password: passcode}, initQueueRoutes) => {
-  const connectOptions = {
-    host,
-    port,
-    connectHeaders: {
-      host: '/',
-      login,
-      passcode,
-    },
+const makeTaskConsumer = async (consumerFn, connectionUrl, queueName) => {
+  const {connection, channel} = await init(connectionUrl)
+  const subscribeHeaders = {
+    destination: queueName,
+    ack: 'client-individual',
+    'activemq.prefetchSize': 1,
+    persistent: true,
   }
-  client = await promisify(stompit.connect)(connectOptions)
-  if (initQueueRoutes) {
-    initQueueRoutes(subscribeQueue)
+  await channel.subscribe(subscribeHeaders, async (subscriptionError, message) => {
+    if (subscriptionError) {
+      logger.error('Error on subscription', subscriptionError)
+      await channel.nack(message)
+      return
+    }
+
+    try {
+      const msgJson = await getMessageBody(message)
+      const msgObj = JSON.parse(msgJson)
+      await consumerFn(msgObj)
+      await channel.ack(message)
+    } catch (err) {
+      logger.error('Error consuming message', err)
+    }
+  })
+  return {
+    close: async () => connection.close(),
+  }
+}
+
+const makeTaskProducer = async (connUrl, queueName) => {
+  const {connection, channel} = await init(connUrl)
+  return {
+    send: async (msgObj) => {
+      const msgJson = JSON.stringify(msgObj)
+      channel.send(queueName, Buffer.from(msgJson))
+    },
+    close: async () => connection.close(),
   }
 }
 
 module.exports = {
-  sendToQueue,
-  queueInit,
+  makeTaskConsumer,
+  makeTaskProducer,
 }
