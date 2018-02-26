@@ -3,7 +3,7 @@ const compression = require('compression')
 const bodyParser = require('body-parser')
 const expressStatusMonitor = require('express-status-monitor')
 const {
-  jwtMiddlewares: {jwtRequest},
+  jwt: {jwtRequest},
   loggers: {logger, expressLogger},
   expressHelpers: {errorHandler, createApiEndpoint},
 } = require('@welldone-software/node-toolbelt')
