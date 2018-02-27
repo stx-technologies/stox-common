@@ -60,11 +60,11 @@ const Builder = config => ({
     })
   },
   addRpcQueue(name, initRoutes, connectionConfig) {
-    config.consumerQueues[name] = {initRoutes, connectionConfig}
+    config.rpcQueues[name] = {initRoutes, connectionConfig}
   },
   addRpcQueues(queues, connectionConfig) {
     Object.entries(queues).forEach(([name, initRoutes]) => {
-      config.consumerQueues[name] = {initRoutes, connectionConfig}
+      config.rpcQueues[name] = {initRoutes, connectionConfig}
     })
   },
   addJob(name, jobConfig = jobConfigDefinition) {

@@ -1,6 +1,19 @@
 const stompit = require('stompit')
 const {loggers: {logger}} = require('@welldone-software/node-toolbelt')
 
+const toConnectionObject = (connectionUrl) => {
+  const [host, port] = connectionUrl.split(':')
+  return {
+    host,
+    port,
+    connectHeaders: {
+      host: '',
+      login: '',
+      passcode: '',
+    }
+  }
+}
+
 const connect = connectionManager =>
   new Promise((resolve, reject) =>
     connectionManager.connect((error, client) => (error ? reject(error) : resolve(client))))
@@ -9,13 +22,13 @@ const getMessageBody = msg =>
   new Promise((resolve, reject) => msg.readString('utf-8', (error, body) => (error ? reject(error) : resolve(body))))
 
 const init = async (connectionUrl) => {
-  const servers = [connectionUrl]
+  const servers = [toConnectionObject(connectionUrl)]
 
   const connectionManager = new stompit.ConnectFailover(servers, {maxReconnects: 10})
   const connection = await connect(connectionManager)
   const channel = new stompit.Channel(connectionManager)
 
-  process.once('SIGINT', () => connection.close())
+  // process.once('SIGINT', () => connection.disconnect())
 
   return {channel, connection}
 }
