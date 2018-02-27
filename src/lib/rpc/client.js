@@ -3,7 +3,12 @@ const {
 } = require('@welldone-software/node-toolbelt')
 const stompit = require('stompit')
 const uuid = require('uuid')
-const {sendRpc, subscribeToQueue} = require('./mq')
+const {
+  sendRpc,
+  subscribeRpcHandler,
+  subscribeToQueue,
+  sendFrame,
+} = require('./mq')
 const {
   requestQueueName,
   responseQueueName,
@@ -54,6 +59,9 @@ class RpcClient {
     return this
   }
 
+  /**
+   * @private
+   */
   getSubscriber(destination) {
     return (correlationId) => {
       const subscriber = (this.subscribers[destination] || {})[correlationId]
@@ -64,6 +72,9 @@ class RpcClient {
     }
   }
 
+  /**
+   * @private
+   */
   ensureSubscriptionToResponse(destination) {
     if (this.subscriptions[destination]) {
       return
@@ -71,9 +82,39 @@ class RpcClient {
 
     this.logger.debug({destination}, 'started listening to responses for destination')
     this.subscriptions[destination] =
-      subscribeToQueue(this.client, this.logger, destination, this.getSubscriber(destination))
+      subscribeRpcHandler(this.client, this.logger, destination, this.getSubscriber(destination))
   }
 
+  /**
+   * Subscribe to messages from a certain queue
+   * @param {*} queue queue to subscribe to
+   * @param {*} handler callback to handle messages. {@link mq#subscribeToQueue}
+   * Node style callback, of `(err, response)`.
+   * `response` can be destructured to `{body, headers}`
+   * @return subscription, on which you can call `unsubscribe`
+   */
+  subscribe(queue, handler) {
+    if (typeof handler !== 'function') {
+      const type = Object.prototype.toString.call(handler)
+      throw new RpcError(`RpcClient.subscribe() requires a callback but got a ${type}`)
+    }
+    return subscribeToQueue(this.client, queue, handler)
+  }
+
+  /**
+   * Publishes a message to given queue
+   * @param {String} queue queue to send the message to
+   * @param {Object|String} content content of the message to send
+   * @param {[Object]} additionalHeaders optional - additional headers to send as metadata
+   */
+  publish(queue, content, additionalHeaders = {}) {
+    const headers = {...additionalHeaders, destination: queue}
+    sendFrame(this.client, content, headers)
+  }
+
+  /**
+   * @private
+   */
   subscribeCaller(responseQueue, correlationId, timeout) {
     return new Promise((resolve, reject) => {
       setRpcTimeout(responseQueue, reject, timeout)

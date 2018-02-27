@@ -14,14 +14,44 @@ const parseMessage = message =>
       resolve(JSON.parse(body))
     }))
 
-const sendFrame = (client, headers, message) => {
+const sendFrame = (client, message, headers) => {
   const stompHeaders = toStompHeaders(headers)
   const frame = client.send(stompHeaders)
   frame.write(JSON.stringify(message))
   frame.end()
 }
 
-const subscribeToQueue = (client, logger, destination, getSubscriber) =>
+/**
+ * Subscribes a specific queue
+ * @param {StopmitClient} client stompit client
+ * @param {String} destination queue to subscribe to
+ * @param {Function(error: *, ({headers: Object, body: Object|String})): void} handler
+ * node style callback, parameters are `(err, response)`.
+ * `response` consists of `body` and `headers`
+ * @return subscription object, which you can call `unsubscribe` on
+ */
+const subscribeToQueue = (client, destination, handler) =>
+  client.subscribe({destination}, (subscriptionError, message) => {
+    if (subscriptionError) {
+      handler(new RpcError('subscription error', subscriptionError))
+      return
+    }
+
+    const headers = fromStompHeaders(message.headers)
+    headers.ok = headers.ok !== 'false'
+    message.readString('utf-8', (messageError, responseContent) => {
+      if (messageError) {
+        handler(new RpcError('message parse error', messageError))
+        return
+      }
+
+      const body = JSON.parse(responseContent)
+      const response = {headers, body}
+      handler(null, response)
+    })
+  })
+
+const subscribeRpcHandler = (client, logger, destination, getSubscriber) =>
   client.subscribe({destination}, (subscriptionError, message) => {
     if (subscriptionError) {
       throw new RpcError('subscription error', subscriptionError)
@@ -37,7 +67,7 @@ const subscribeToQueue = (client, logger, destination, getSubscriber) =>
 
     message.readString('utf-8', (messageError, responseContent) => {
       if (messageError) {
-        subscriber.reject(messageError)
+        subscriber.reject(new RpcError('message parse error', messageError))
         return
       }
 
@@ -86,7 +116,7 @@ const sendRpc = (
   }
 
   logger.debug({sendHeaders, content}, 'sending frame')
-  sendFrame(client, sendHeaders, content)
+  sendFrame(client, content, sendHeaders)
 }
 
 const responseHeaders = (requestHeaders) => {
@@ -109,20 +139,22 @@ const respondToRpc = (client, message, handler, body) =>
       .then((response) => {
         response = response || 'success'
         const successHeaders = {...headers, ok: true}
-        sendFrame(client, successHeaders, response)
+        sendFrame(client, response, successHeaders)
         resolve({headers: successHeaders, response})
       })
       .catch((handlerError) => {
         const {message: errorMessage, context} = handlerError
         const failureHeaders = {...headers, ok: false}
-        sendFrame(client, failureHeaders, {message: errorMessage, context})
+        sendFrame(client, {message: errorMessage, context}, failureHeaders)
         reject(handlerError)
       })
   })
 
 module.exports = {
+  subscribeRpcHandler,
   subscribeToQueue,
   parseMessage,
+  sendFrame,
   sendRpc,
   respondToRpc,
 }

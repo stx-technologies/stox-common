@@ -16,7 +16,7 @@ class RpcRouter {
     method = stripSlash(method)
     if (typeof handler !== 'function') {
       const type = Object.prototype.toString.call(handler)
-      throw new RpcError(`QueueRpcRouter.method() requires a callback but got a ${type}`)
+      throw new RpcError(`RpcRouter.method() requires a callback but got a ${type}`)
     }
 
     if (this.methodHandlers[method]) {

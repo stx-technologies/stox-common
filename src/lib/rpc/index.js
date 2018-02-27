@@ -22,11 +22,24 @@ const createRpcConnection = (connectOptions) => {
       return Promise.reject(error)
     })
 
+  const publish =
+    (queue, content, headers = {}) =>
+      clientPromise.then(client =>
+        client.publish(queue, content, headers))
+
+  const subscribe = (queue, handler) => {
+    const subscriptionPromise = clientPromise.then(client =>
+      client.subscribe(queue, handler))
+    return {
+      unsubscribe: () => subscriptionPromise.then(s => s.unsubscribe()),
+    }
+  }
+
   const rpc =
     (queueName, method, body = {}, headers = {}) =>
       clientPromise.then(client =>
-        client.call(`${queueName}/${method}`, body, {...defaultOptions, headers}))
-  return {rpc, clientPromise}
+        client.call(method, body, {...defaultOptions, headers}))
+  return {rpc, publish, subscribe, clientPromise}
 }
 
 module.exports = {createRpcConnection, RpcServer}
