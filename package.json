@@ -22,7 +22,9 @@
     "@welldone-software/node-toolbelt": "^1.2.0",
     "axios": "^0.18.0",
     "body-parser": "^1.18.2",
+    "common-tags": "^1.7.2",
     "compression": "^1.7.1",
+    "connection-string": "^0.4.1",
     "cors": "^2.8.4",
     "express": "^4.16.2",
     "express-history-api-fallback": "^2.2.1",
@@ -33,6 +35,8 @@
     "pg": "^7.4.1",
     "pg-hstore": "^2.3.2",
     "sequelize": "^4.33.4",
+    "stompit": "^0.25.0",
+    "uuid": "^3.2.1",
     "web3": "^1.0.0-beta.30"
   },
   "pre-commit": [
