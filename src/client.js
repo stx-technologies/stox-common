@@ -7,6 +7,6 @@ logger.level = 'debug'
 
 clientPromise.then(() => logger.info('connected'))
 
-rpc('/add', {number: 1})
+rpc('', '/add', {number: 1})
   .then(response => logger.info(response, 'SUCCESS'))
   .catch(error => logger.error(error, 'RPC ERRORED'))
