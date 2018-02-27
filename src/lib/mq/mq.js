@@ -1,7 +1,9 @@
 const {RpcError} = require('../errors')
+const stompit = require('stompit')
 const {
   toStompHeaders,
   fromStompHeaders,
+  toConnectionConfig,
 } = require('./utils')
 
 const parseMessage = message =>
@@ -119,9 +121,12 @@ const sendRpc = (
   sendFrame(client, content, sendHeaders)
 }
 
-const responseHeaders = (requestHeaders) => {
-  const {'reply-to': destination, ...rest} = requestHeaders
-  return {...rest, destination}
+const toResponseHeaders = (requestHeaders) => {
+  const {replyTo: destination, ...rest} = fromStompHeaders(requestHeaders)
+  if (!destination) {
+    return [['destination'], rest]
+  }
+  return [false, {...rest, destination}]
 }
 
 /**
@@ -133,7 +138,14 @@ const responseHeaders = (requestHeaders) => {
  */
 const respondToRpc = (client, message, handler, body) =>
   new Promise((resolve, reject) => {
-    const headers = fromStompHeaders(responseHeaders(message.headers))
+    const [missingHeaders, headers] = toResponseHeaders(message.headers)
+    if (missingHeaders) {
+      reject(new RpcError(
+        'Rpc request is missing required headers',
+        {missingHeaders, headers, body}
+      ))
+      return
+    }
     Promise.resolve()
       .then(() => handler({body, headers}))
       .then((response) => {
@@ -150,7 +162,42 @@ const respondToRpc = (client, message, handler, body) =>
       })
   })
 
+class StompitClient {
+  constructor(stompitClient, logger, subLoggerName) {
+    this.client = stompitClient
+    this.logger = logger.child({name: subLoggerName})
+    this.logger.debug(`intialized stopmit client: ${subLoggerName}`)
+  }
+
+  on(type, listener) {
+    this.logger.debug(`listening to "${type}" event on stompit client`)
+    this.client.on(type, listener)
+    return this
+  }
+}
+
+const connectToStompit = (configOrConnectionString) => {
+  const config = toConnectionConfig(configOrConnectionString)
+
+  return new Promise((resolve, reject) =>
+    stompit.connect(config, (error, stompitClient) => {
+      if (error) {
+        reject(new RpcError('failed to connect to ActiveMQ', {config, error}))
+        return
+      }
+      resolve(stompitClient)
+    }))
+}
+
+const createStompitClientFactory = ClientType =>
+  (configOrConnectionString, options) =>
+    connectToStompit(configOrConnectionString)
+      .then(stompitClient => new ClientType(stompitClient, options))
+
 module.exports = {
+  StompitClient,
+  createStompitClientFactory,
+  connectToStompit,
   subscribeRpcHandler,
   subscribeToQueue,
   parseMessage,

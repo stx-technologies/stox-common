@@ -1,11 +1,12 @@
 const {loggers: {logger}} = require('@welldone-software/node-toolbelt')
-const {createRpcConnection} = require('.')
-
-const {rpc, subscribe, publish, clientPromise} = createRpcConnection('localhost:61613')
+const {createMqConnections} = require('.')
 
 logger.level = 'debug'
 
-clientPromise.then(() => logger.info('connected'))
+const {rpc, subscribe, publish, mqConnections} = createMqConnections('localhost:61613')
+
+
+mqConnections.then(() => logger.info('connected'))
 
 rpc('', '/add', {number: 1})
   .then(response => logger.info(response, 'SUCCESS'))
