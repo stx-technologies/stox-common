@@ -4,6 +4,7 @@ const {createServer} = require('./lib/initServer')
 const schedule = require('./lib/schedule')
 const errors = require('./lib/errors')
 const http = require('./lib/http')
+const queue = require('./lib/queue')
 
 module.exports = {
   createServer,
@@ -12,4 +13,5 @@ module.exports = {
   schedule,
   errors,
   http,
+  queue,
 }
