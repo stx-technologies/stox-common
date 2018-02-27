@@ -42,6 +42,13 @@ const errSerializer = (err) => {
   return err
 }
 
+class RpcError extends Error {
+  constructor(msg, context) {
+    super(msg)
+    this.context = context
+  }
+}
+
 const logError = (err) => {
   const error = errSerializer(err)
   delete error.code
@@ -51,4 +58,5 @@ const logError = (err) => {
 module.exports = {
   logError,
   DbError,
+  RpcError,
 }

@@ -5,6 +5,7 @@ const schedule = require('./lib/schedule')
 const errors = require('./lib/errors')
 const http = require('./lib/http')
 const queue = require('./lib/queue')
+const {createRpcConnection, RpcServer} = require('./lib/rpc')
 
 module.exports = {
   createServer,
@@ -14,4 +15,6 @@ module.exports = {
   errors,
   http,
   queue,
+  createRpcConnection,
+  RpcServer,
 }
