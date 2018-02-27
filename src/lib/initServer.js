@@ -14,6 +14,7 @@ const {dbInit} = require('./dbConnect')
 const {makeTaskConsumer} = require('./queue')
 const {scheduleJob} = require('./schedule')
 const {RpcServer} = require('./rpc')
+const {initBlockchain} = require('./blockchain')
 
 const defaultConfig = {
   clientRootDist: '',
@@ -24,6 +25,7 @@ const defaultConfig = {
   jobs: [],
   consumerQueues: {},
   rpcQueues: {},
+  blockchain: undefined,
 }
 const defaultBuilder = (builder = Builder()) => {}
 
@@ -74,6 +76,9 @@ const Builder = config => ({
     Object.entries(jobs).forEach(([name, jobConfig]) => {
       config.jobs.push({name, cron: jobConfig.cron, func: jobConfig.job})
     })
+  },
+  blockchain(web3Url, contractsDir) {
+    config.blockchain = {web3Url, contractsDir}
   },
 })
 
@@ -145,6 +150,10 @@ const createService = (serviceName, builderFunc = defaultBuilder) => ({
       }))
 
     config.jobs.forEach(({name, cron, func}) => scheduleJob(name, cron, func))
+
+    if (config.blockchain) {
+      await initBlockchain(config.blockchain.web3Url, config.blockchain.contractsDir)
+    }
   },
 })
 
