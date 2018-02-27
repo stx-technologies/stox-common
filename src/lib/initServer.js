@@ -13,6 +13,7 @@ const cors = require('cors')
 const {dbInit} = require('./dbConnect')
 const {makeTaskConsumer} = require('./queue')
 const {scheduleJob} = require('./schedule')
+const {RpcServer} = require('./rpc')
 
 const defaultConfig = {
   clientRootDist: '',
@@ -21,7 +22,8 @@ const defaultConfig = {
   initRoutesFunc: (router, createApiEndpoint, secure) => {},
   apiServerConfig: undefined,
   jobs: [],
-  queues: [],
+  consumerQueues: [],
+  rpcQueues: [],
 }
 const defaultBuilder = (builder = Builder()) => {}
 
@@ -49,11 +51,29 @@ const Builder = config => ({
   api(apiServerConfig = apiServerConfigDefinition) {
     config.apiServerConfig = apiServerConfig
   },
-  addQueue(name, connectionUrl, cb = queueCallback) {
-    config.queues.push({name, cb, connectionUrl})
+  addConsumerQueue(name, connectionUrl, cb = queueCallback) {
+    config.consumerQueues.push({name, cb, connectionUrl})
+  },
+  addConsumerQueues(queues, connectionUrl) {
+    Object.entries(queues).forEach(([name, cb]) => {
+      config.consumerQueues.push({name, cb, connectionUrl})
+    })
+  },
+  addRpcQueue(name, routers, connectionConfig) {
+    config.rpcQueues.push({name, routers, connectionConfig})
+  },
+  addRpcQueues(queues, connectionConfig) {
+    Object.entries(queues).forEach(([name, routers]) => {
+      config.consumerQueues.push({name, routers, connectionConfig})
+    })
   },
   addJob(name, jobConfig = jobConfigDefinition) {
     config.jobs.push({name, cron: jobConfig.cron, func: jobConfig.job})
+  },
+  addJobs(jobs) {
+    Object.entries(jobs).forEach(([name, jobConfig]) => {
+      config.jobs.push({name, cron: jobConfig.cron, func: jobConfig.job})
+    })
   },
 })
 
@@ -86,7 +106,7 @@ const initExpress = (app, config = apiServerConfigDefinition, clientRootDist) =>
   app.use(errorHandler)
 }
 
-const createServer = (port, builderFunc = defaultBuilder) => ({
+const createService = (builderFunc = defaultBuilder) => ({
   async start() {
     const config = Object.assign({}, defaultConfig)
     builderFunc(Builder(config))
@@ -108,13 +128,19 @@ const createServer = (port, builderFunc = defaultBuilder) => ({
         }
       })
     }
-    await Promise.all(config.queues.map(({name, cb, connectionUrl}) =>
+    await Promise.all(config.consumerQueues.map(({name, cb, connectionUrl}) =>
       makeTaskConsumer(cb, connectionUrl, name)))
+
+    await Promise.all(config.rpcQueues.map(({name, routers, connectionConfig}) => {
+      const server = new RpcServer()
+      server.routers = routers
+      server.start(connectionConfig)
+    }))
 
     config.jobs.forEach(({name, cron, func}) => scheduleJob(name, cron, func))
   },
 })
 
 module.exports = {
-  createServer,
+  createService,
 }
