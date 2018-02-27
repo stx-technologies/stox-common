@@ -22,8 +22,8 @@ const defaultConfig = {
   initRoutesFunc: (router, createApiEndpoint, secure) => {},
   apiServerConfig: undefined,
   jobs: [],
-  consumerQueues: [],
-  rpcQueues: [],
+  consumerQueues: {},
+  rpcQueues: {},
 }
 const defaultBuilder = (builder = Builder()) => {}
 
@@ -52,19 +52,19 @@ const Builder = config => ({
     config.apiServerConfig = apiServerConfig
   },
   addConsumerQueue(name, connectionUrl, cb = queueCallback) {
-    config.consumerQueues.push({name, cb, connectionUrl})
+    config.consumerQueues[name] = {cb, connectionUrl}
   },
   addConsumerQueues(queues, connectionUrl) {
     Object.entries(queues).forEach(([name, cb]) => {
-      config.consumerQueues.push({name, cb, connectionUrl})
+      config.consumerQueues[name] = {cb, connectionUrl}
     })
   },
-  addRpcQueue(name, routers, connectionConfig) {
-    config.rpcQueues.push({name, routers, connectionConfig})
+  addRpcQueue(name, initRoutes, connectionConfig) {
+    config.consumerQueues[name] = {initRoutes, connectionConfig}
   },
   addRpcQueues(queues, connectionConfig) {
-    Object.entries(queues).forEach(([name, routers]) => {
-      config.consumerQueues.push({name, routers, connectionConfig})
+    Object.entries(queues).forEach(([name, initRoutes]) => {
+      config.consumerQueues[name] = {initRoutes, connectionConfig}
     })
   },
   addJob(name, jobConfig = jobConfigDefinition) {
@@ -106,7 +106,11 @@ const initExpress = (app, config = apiServerConfigDefinition, clientRootDist) =>
   app.use(errorHandler)
 }
 
-const createService = (builderFunc = defaultBuilder) => ({
+const addRpcRoute = (router, queueName, routePath, cb) => {
+  router.respondTo(`${queueName}/${routePath}`, cb)
+}
+
+const createService = (serviceName, builderFunc = defaultBuilder) => ({
   async start() {
     const config = Object.assign({}, defaultConfig)
     builderFunc(Builder(config))
@@ -128,14 +132,17 @@ const createService = (builderFunc = defaultBuilder) => ({
         }
       })
     }
-    await Promise.all(config.consumerQueues.map(({name, cb, connectionUrl}) =>
+    await Promise.all(Object.entries(config.consumerQueues).map(([name, {cb, connectionUrl}]) =>
       makeTaskConsumer(cb, connectionUrl, name)))
 
-    await Promise.all(config.rpcQueues.map(({name, routers, connectionConfig}) => {
-      const server = new RpcServer()
-      server.routers = routers
-      server.start(connectionConfig)
-    }))
+    await Promise.all(Object.entries(config.rpcQueues)
+      .map(([name, {initRoutes, connectionConfig}]) => {
+        const server = new RpcServer()
+        const router = new RpcServer.Router()
+        initRoutes(addRpcRoute.bind(null, router, name))
+        server.use(router)
+        return server.start(connectionConfig)
+      }))
 
     config.jobs.forEach(({name, cron, func}) => scheduleJob(name, cron, func))
   },
