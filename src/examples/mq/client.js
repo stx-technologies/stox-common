@@ -1,5 +1,5 @@
 const {loggers: {logger}} = require('@welldone-software/node-toolbelt')
-const {createMqConnections} = require('.')
+const {createMqConnections} = require('../../')
 
 logger.level = 'debug'
 

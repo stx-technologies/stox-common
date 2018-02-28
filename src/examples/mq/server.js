@@ -1,7 +1,7 @@
 const {loggers: {logger}} = require('@welldone-software/node-toolbelt')
-const {RpcError} = require('./lib/errors')
-const RpcRouter = require('./lib/mq/router')
-const RpcServer = require('./lib/mq/server')
+const {RpcError} = require('../../lib/errors')
+const RpcRouter = require('../../lib/mq/router')
+const RpcServer = require('../../lib/mq/server')
 
 /**
  * This is the same server from https://github.com/gioragutt/stx-amq-poc
