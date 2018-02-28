@@ -3,7 +3,7 @@ const compression = require('compression')
 const bodyParser = require('body-parser')
 const expressStatusMonitor = require('express-status-monitor')
 const {
-  // jwt: {jwtRequest, jwtSecure},
+  jwt: {jwtRequest, jwtSecure},
   loggers: {logger, expressLogger},
   expressHelpers: {errorHandler, createApiEndpoint},
 } = require('@welldone-software/node-toolbelt')
@@ -34,7 +34,7 @@ const apiServerConfigDefinition = {
   version: 1,
   routes: (router, createApiEndpoint, secure) => {},
   cors: false,
-  // jwtSecret: '',
+  jwtSecret: '',
 }
 const queueCallback = (message) => {}
 const jobConfigDefinition = {
@@ -84,10 +84,10 @@ const Builder = config => ({
 
 const initRouter = (initRoutes, jwtSecret) => {
   const router = new express.Router()
-  // if (jwtSecret) {
-  //   router.use(jwtRequest(jwtSecret))
-  // }
-  initRoutes(router, createApiEndpoint) // , jwtSecure)
+  if (jwtSecret) {
+    router.use(jwtRequest(jwtSecret))
+  }
+  initRoutes(router, createApiEndpoint, jwtSecret && jwtSecure)
   return router
 }
 
