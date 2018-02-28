@@ -5,7 +5,7 @@ const schedule = require('./lib/schedule')
 const errors = require('./lib/errors')
 const http = require('./lib/http')
 const queue = require('./lib/queue')
-const {createMqConnections, RpcRouter} = require('./lib/mq')
+const {createMqConnections, RpcRouter, mq} = require('./lib/mq')
 
 module.exports = {
   createService,
@@ -17,4 +17,5 @@ module.exports = {
   queue,
   createMqConnections,
   RpcRouter,
+  mq,
 }
