@@ -4,6 +4,13 @@ this part of the library is responsible for handling RPC in MQs.
 
 `index.js` exports a method called `createRpcConnection`.
 
+## Important terms:
+
+I felt like there are some terms which need explaning:
+
+* **correlationId** - Name of a header send during an RPC. Represents the ID of a certain RPC call.  
+  When subscribing several handlers to a RPC queue (several calls to the same method), you need a way to route the response to the correct handler, this is where correlationId comes in play.
+
 ## Initialization:
 
 ```javascript

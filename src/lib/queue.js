@@ -10,7 +10,7 @@ const toConnectionObject = (connectionUrl) => {
       host: '',
       login: '',
       passcode: '',
-    }
+    },
   }
 }
 
@@ -19,7 +19,8 @@ const connect = connectionManager =>
     connectionManager.connect((error, client) => (error ? reject(error) : resolve(client))))
 
 const getMessageBody = msg =>
-  new Promise((resolve, reject) => msg.readString('utf-8', (error, body) => (error ? reject(error) : resolve(body))))
+  new Promise((resolve, reject) =>
+    msg.readString('utf-8', (error, body) => (error ? reject(error) : resolve(body))))
 
 const init = async (connectionUrl) => {
   const servers = [toConnectionObject(connectionUrl)]

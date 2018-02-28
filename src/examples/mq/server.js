@@ -1,6 +1,7 @@
 const {loggers: {logger}} = require('@welldone-software/node-toolbelt')
-const {RpcError} = require('./lib/errors')
-const {RpcServer} = require('.')
+const {RpcError} = require('../../lib/errors')
+const RpcRouter = require('../../lib/mq/router')
+const RpcServer = require('../../lib/mq/server')
 
 /**
  * This is the same server from https://github.com/gioragutt/stx-amq-poc
@@ -66,20 +67,19 @@ class Database {
 
 const db = new Database()
 
-const readWriteRouter = new RpcServer.Router()
+const readWriteRouter = new RpcRouter()
 readWriteRouter.respondTo('/add', ({body: {number}}) => db.add(number))
 readWriteRouter.respondTo('/remove', ({body: {number}}) => db.remove(number))
 readWriteRouter.respondTo('/clear', () => db.clear())
 
-const readOnlyRouter = new RpcServer.Router()
+const readOnlyRouter = new RpcRouter()
 readOnlyRouter.respondTo('/query', () => db.query())
 readOnlyRouter.respondTo('/echo', ({body: {message}}) => message)
 
-const server = new RpcServer()
-server.use(readWriteRouter)
-server.use(readOnlyRouter)
-
-server
-  .start('localhost:61613')
-  .then(config => logger.info(config, 'connected to active mq'))
-  .catch(error => logger.error({error}, 'failed to connect to active mq'))
+RpcServer.connect('localhost:61613').then((rpcServer) => {
+  logger.info('connected')
+  rpcServer
+    .use(readWriteRouter)
+    .use(readOnlyRouter)
+    .start()
+})

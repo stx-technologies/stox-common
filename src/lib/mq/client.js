@@ -1,15 +1,7 @@
-const {
-  loggers: {logger: wdLogger},
-} = require('@welldone-software/node-toolbelt')
-const stompit = require('stompit')
+const {loggers: {logger: wdLogger}} = require('@welldone-software/node-toolbelt')
 const uuid = require('uuid')
-const {sendRpc, subscribeToQueue} = require('./mq')
-const {
-  requestQueueName,
-  responseQueueName,
-  stripSlash,
-  toConnectionConfig,
-} = require('./utils')
+const {sendRpc, subscribeRpcHandler, StompitClient, createStompitClientFactory} = require('./mq')
+const {requestQueueName, responseQueueName, stripSlash} = require('./utils')
 const {RpcError} = require('../errors')
 const {oneLine} = require('common-tags')
 
@@ -22,7 +14,7 @@ const setRpcTimeout = (responseQueue, reject, timeout) => {
   }
 }
 
-class RpcClient {
+class RpcClient extends StompitClient {
   /**
    * Create a QueueRpc API Client
    * @param {*} stompitClient an instance of the `stompit`
@@ -30,8 +22,7 @@ class RpcClient {
    * {@link http://gdaws.github.io/node-stomp/api/}
    */
   constructor(stompitClient, {id, logger = wdLogger} = {}) {
-    this.client = stompitClient
-    this.logger = logger.child({name: 'QueueRpcClient'})
+    super(stompitClient, logger, 'RpcClient')
     this.subscriptions = {}
     this.subscribers = {}
     this.methodToQueueName = {}
@@ -44,16 +35,8 @@ class RpcClient {
   }
 
   /**
-   * Listen to events emitted by the stompit client
-   * @param {String} type type of the event
-   * @param {Function} listener event handler
+   * @private
    */
-  on(type, listener) {
-    this.logger.debug(`listening to "${type}" event on stompit client`)
-    this.client.on(type, listener)
-    return this
-  }
-
   getSubscriber(destination) {
     return (correlationId) => {
       const subscriber = (this.subscribers[destination] || {})[correlationId]
@@ -64,6 +47,9 @@ class RpcClient {
     }
   }
 
+  /**
+   * @private
+   */
   ensureSubscriptionToResponse(destination) {
     if (this.subscriptions[destination]) {
       return
@@ -71,9 +57,12 @@ class RpcClient {
 
     this.logger.debug({destination}, 'started listening to responses for destination')
     this.subscriptions[destination] =
-      subscribeToQueue(this.client, this.logger, destination, this.getSubscriber(destination))
+      subscribeRpcHandler(this.client, this.logger, destination, this.getSubscriber(destination))
   }
 
+  /**
+   * @private
+   */
   subscribeCaller(responseQueue, correlationId, timeout) {
     return new Promise((resolve, reject) => {
       setRpcTimeout(responseQueue, reject, timeout)
@@ -141,17 +130,6 @@ class RpcClient {
  * @param {[Object]} options options for the wrapper client
  * @see {@link RpcClient#constructor} for available options
  */
-RpcClient.connect = (configOrConnectionString, options) => {
-  const config = toConnectionConfig(configOrConnectionString)
-
-  return new Promise((resolve, reject) =>
-    stompit.connect(config, (error, stompitClient) => {
-      if (error) {
-        reject(error)
-        return
-      }
-      resolve(new RpcClient(stompitClient, options))
-    }))
-}
+RpcClient.connect = createStompitClientFactory(RpcClient)
 
 module.exports = RpcClient
