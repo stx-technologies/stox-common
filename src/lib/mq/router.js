@@ -23,7 +23,7 @@ class RpcRouter {
       throw new RpcError(`handler for method ${methodOrHandler} already defined in this router`)
     }
 
-    this.methodHandlers[methodQueue] = handlerOrNothing
+    this.methodHandlers[methodQueue] = handler
   }
 }
 

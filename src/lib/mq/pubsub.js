@@ -29,7 +29,7 @@ class PubsubClient extends StompitClient {
    * @return subscription, on which you can call `unsubscribe`
    */
   subscribe(baseOrMethod, methodOrHandler, handlerOrNothing) {
-    const {methodQueue, handler} =
+    const [methodQueue, handler] =
       subscriptionParameters(baseOrMethod, methodOrHandler, handlerOrNothing)
 
     validateHandlerIsFunction('PubsubClient.subscribe()', handler)

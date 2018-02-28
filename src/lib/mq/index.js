@@ -34,7 +34,7 @@ const createMqConnections = (connectOptions, options = {}) => {
   }
 
   const rpc =
-    (queueName, method, body = {}, headers = {}) =>
+    (method, body = {}, headers = {}) =>
       mqConnections.then(({rpcClient}) =>
         rpcClient.call(method, body, {...defaultOptions, headers}))
   return {rpc, publish, subscribe, mqConnections}

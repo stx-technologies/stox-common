@@ -1,7 +1,12 @@
 const {loggers: {logger: wdLogger}} = require('@welldone-software/node-toolbelt')
 const {RpcError} = require('../errors')
 const {requestQueueName} = require('./utils')
-const {respondToRpc, parseMessage, StompitClient, createStompitClientFactory} = require('./mq')
+const {
+  respondToRpc,
+  parseMessage,
+  StompitClient,
+  createStompitClientFactory,
+} = require('./mq')
 
 class RpcServer extends StompitClient {
   constructor(stompitClient, {logger = wdLogger} = {}) {

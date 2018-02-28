@@ -124,7 +124,7 @@ const sendRpc = (
 const toResponseHeaders = (requestHeaders) => {
   const {replyTo: destination, ...rest} = fromStompHeaders(requestHeaders)
   if (!destination) {
-    return [['destination'], rest]
+    return [['replay-to'], rest]
   }
   return [false, {...rest, destination}]
 }
