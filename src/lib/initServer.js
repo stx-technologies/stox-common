@@ -3,7 +3,7 @@ const compression = require('compression')
 const bodyParser = require('body-parser')
 const expressStatusMonitor = require('express-status-monitor')
 const {
-  // jwt: {jwtRequest, jwtSecure},
+  jwt: {jwtRequest, jwtSecure},
   loggers: {logger, expressLogger},
   expressHelpers: {errorHandler, createApiEndpoint},
 } = require('@welldone-software/node-toolbelt')
@@ -14,6 +14,7 @@ const {dbInit} = require('./dbConnect')
 const {makeTaskConsumer} = require('./queue')
 const {scheduleJob} = require('./schedule')
 const {RpcServer} = require('./rpc')
+const {initBlockchain} = require('./blockchain')
 
 const defaultConfig = {
   clientRootDist: '',
@@ -24,6 +25,7 @@ const defaultConfig = {
   jobs: [],
   consumerQueues: {},
   rpcQueues: {},
+  blockchain: undefined,
 }
 const defaultBuilder = (builder = Builder()) => {}
 
@@ -32,7 +34,7 @@ const apiServerConfigDefinition = {
   version: 1,
   routes: (router, createApiEndpoint, secure) => {},
   cors: false,
-  // jwtSecret: '',
+  jwtSecret: '',
 }
 const queueCallback = (message) => {}
 const jobConfigDefinition = {
@@ -60,11 +62,11 @@ const Builder = config => ({
     })
   },
   addRpcQueue(name, initRoutes, connectionConfig) {
-    config.consumerQueues[name] = {initRoutes, connectionConfig}
+    config.rpcQueues[name] = {initRoutes, connectionConfig}
   },
   addRpcQueues(queues, connectionConfig) {
     Object.entries(queues).forEach(([name, initRoutes]) => {
-      config.consumerQueues[name] = {initRoutes, connectionConfig}
+      config.rpcQueues[name] = {initRoutes, connectionConfig}
     })
   },
   addJob(name, jobConfig = jobConfigDefinition) {
@@ -75,14 +77,17 @@ const Builder = config => ({
       config.jobs.push({name, cron: jobConfig.cron, func: jobConfig.job})
     })
   },
+  blockchain(web3Url, contractsDir) {
+    config.blockchain = {web3Url, contractsDir}
+  },
 })
 
 const initRouter = (initRoutes, jwtSecret) => {
   const router = new express.Router()
-  // if (jwtSecret) {
-  //   router.use(jwtRequest(jwtSecret))
-  // }
-  initRoutes(router, createApiEndpoint) // , jwtSecure)
+  if (jwtSecret) {
+    router.use(jwtRequest(jwtSecret))
+  }
+  initRoutes(router, createApiEndpoint, jwtSecret && jwtSecure)
   return router
 }
 
@@ -145,6 +150,10 @@ const createService = (serviceName, builderFunc = defaultBuilder) => ({
       }))
 
     config.jobs.forEach(({name, cron, func}) => scheduleJob(name, cron, func))
+
+    if (config.blockchain) {
+      await initBlockchain(config.blockchain.web3Url, config.blockchain.contractsDir)
+    }
   },
 })
 

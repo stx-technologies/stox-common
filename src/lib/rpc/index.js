@@ -25,7 +25,7 @@ const createRpcConnection = (connectOptions) => {
   const rpc =
     (queueName, method, body = {}, headers = {}) =>
       clientPromise.then(client =>
-        client.call(queueName + method, body, {...defaultOptions, headers}))
+        client.call(`${queueName}/${method}`, body, {...defaultOptions, headers}))
   return {rpc, clientPromise}
 }
 
