@@ -5,8 +5,7 @@ const {
   subscribeToQueue,
   sendFrame,
 } = require('./mq')
-const {RpcError} = require('../errors')
-
+const {subscriptionParameters, validateHandlerIsFunction} = require('./utils')
 
 class PubsubClient extends StompitClient {
   /**
@@ -17,24 +16,29 @@ class PubsubClient extends StompitClient {
    */
   constructor(stompitClient, {logger = wdLogger} = {}) {
     super(stompitClient, logger, 'PubsubClient')
-    this.subscriptions = {}
+    this.subscriptions = []
   }
 
   /**
    * Subscribe to messages from a certain queue
-   * @param {*} queue queue to subscribe to
-   * @param {*} handler callback to handle messages. {@link mq#subscribeToQueue}
+   * @param {String} baseOrMethod base name for the queue, or the name of the method
+   * @param {String} methodOrHandler name of the method, or tha handler
+   * @param {Function} handlerOrNothing callback to handle messages. {@link mq#subscribeToQueue}
    * Node style callback, of `(err, response)`.
    * `response` can be destructured to `{body, headers}`
    * @return subscription, on which you can call `unsubscribe`
    */
-  subscribe(queue, handler) {
-    if (typeof handler !== 'function') {
-      const type = Object.prototype.toString.call(handler)
-      throw new RpcError(`PubsubClient.subscribe() requires a callback but got a ${type}`)
-    }
-    this.logger.info(`subscribing to ${queue}`)
-    return subscribeToQueue(this.client, queue, handler)
+  subscribe(baseOrMethod, methodOrHandler, handlerOrNothing) {
+    const {methodQueue, handler} =
+      subscriptionParameters(baseOrMethod, methodOrHandler, handlerOrNothing)
+
+    validateHandlerIsFunction('PubsubClient.subscribe()', handler)
+
+    this.logger.info(`subscribing to ${methodQueue}`)
+
+    const subscription = subscribeToQueue(this.client, methodQueue, handler)
+    this.subscriptions.push(subscription)
+    return subscription
   }
 
   /**

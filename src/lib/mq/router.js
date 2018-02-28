@@ -1,5 +1,5 @@
 const {RpcError} = require('../errors')
-const {stripSlash} = require('./utils')
+const {subscriptionParameters, validateHandlerIsFunction} = require('./utils')
 
 class RpcRouter {
   constructor() {
@@ -7,23 +7,23 @@ class RpcRouter {
   }
 
   /**
-   * Adds a handler to respond to an RPC
-   * @param {String} method name of the method
-   * @param {Function} handler callback to handle the request.
+   * Adds a handler to respond to an RPC.
+   * @param {String} baseOrMethod base name for the queue, or the name of the method
+   * @param {String} methodOrHandler name of the method, or tha handler
+   * @param {Function} handlerOrNothing callback to handle the request.
    *  May be sync or async
    */
-  respondTo(method, handler) {
-    method = stripSlash(method)
-    if (typeof handler !== 'function') {
-      const type = Object.prototype.toString.call(handler)
-      throw new RpcError(`RpcRouter.method() requires a callback but got a ${type}`)
+  respondTo(baseOrMethod, methodOrHandler, handlerOrNothing) {
+    const [methodQueue, handler] =
+      subscriptionParameters(baseOrMethod, methodOrHandler, handlerOrNothing)
+
+    validateHandlerIsFunction('RpcRouter.respondTo()', handler)
+
+    if (this.methodHandlers[methodQueue]) {
+      throw new RpcError(`handler for method ${methodOrHandler} already defined in this router`)
     }
 
-    if (this.methodHandlers[method]) {
-      throw new RpcError(`handler for method ${method} already defined`)
-    }
-
-    this.methodHandlers[method] = handler
+    this.methodHandlers[methodQueue] = handlerOrNothing
   }
 }
 

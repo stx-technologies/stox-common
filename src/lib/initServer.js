@@ -11,76 +11,82 @@ const fallback = require('express-history-api-fallback')
 const lusca = require('lusca')
 const cors = require('cors')
 const {dbInit} = require('./dbConnect')
-const {makeTaskConsumer} = require('./queue')
 const {scheduleJob} = require('./schedule')
-const {RpcServer} = require('./rpc')
-const {initBlockchain} = require('./blockchain')
+const {createMqConnections, RpcRouter} = require('./mq')
+// const {initBlockchain} = require('./blockchain')
 
 const defaultConfig = {
   clientRootDist: '',
   databaseUrl: '',
-  models: () => {},
-  initRoutesFunc: (router, createApiEndpoint, secure) => {},
+  // eslint-disable-next-line no-unused-vars
+  models: (sequalize) => {},
+  // eslint-disable-next-line no-unused-vars
+  initRoutesFunc: (router, createEndpoint, secure) => {},
   apiServerConfig: undefined,
   jobs: [],
+  queueConnectionConfig: null,
   consumerQueues: {},
   rpcQueues: {},
   blockchain: undefined,
 }
-const defaultBuilder = (builder = Builder()) => {}
 
-const apiServerConfigDefinition = {
+// eslint-disable-next-line no-unused-vars
+const noopBuilder = (builder) => {}
+
+const noopServerConfigDefinition = {
   port: 0,
   version: 1,
-  routes: (router, createApiEndpoint, secure) => {},
+  // eslint-disable-next-line no-unused-vars
+  routes: (router, createEndpoint, secure) => {},
   cors: false,
   jwtSecret: '',
 }
-const queueCallback = (message) => {}
-const jobConfigDefinition = {
-  cron: '',
-  job: () => {},
-}
 
-const Builder = config => ({
+// eslint-disable-next-line no-unused-vars
+const queueCallback = (message) => {}
+
+const noopJobDefinition = {cron: '', job: () => {}}
+
+class ServiceConfigurationBuilder {
+  constructor() {
+    this.config = Object.assign({}, defaultConfig)
+  }
+
   static(clientRootDist) {
-    config.clientRootDist = clientRootDist
-  },
+    this.config.clientRootDist = clientRootDist
+  }
+
   db(databaseUrl, models) {
-    config.databaseUrl = databaseUrl
-    config.models = models
-  },
-  api(apiServerConfig = apiServerConfigDefinition) {
-    config.apiServerConfig = apiServerConfig
-  },
-  addConsumerQueue(name, connectionUrl, cb = queueCallback) {
-    config.consumerQueues[name] = {cb, connectionUrl}
-  },
-  addConsumerQueues(queues, connectionUrl) {
-    Object.entries(queues).forEach(([name, cb]) => {
-      config.consumerQueues[name] = {cb, connectionUrl}
-    })
-  },
-  addRpcQueue(name, initRoutes, connectionConfig) {
-    config.rpcQueues[name] = {initRoutes, connectionConfig}
-  },
-  addRpcQueues(queues, connectionConfig) {
-    Object.entries(queues).forEach(([name, initRoutes]) => {
-      config.rpcQueues[name] = {initRoutes, connectionConfig}
-    })
-  },
-  addJob(name, jobConfig = jobConfigDefinition) {
-    config.jobs.push({name, cron: jobConfig.cron, func: jobConfig.job})
-  },
+    this.config.databaseUrl = databaseUrl
+    this.config.models = models
+  }
+
+  api(apiServerConfig/* = noopServerConfigDefinition */) {
+    this.config.apiServerConfig = apiServerConfig
+  }
+
+  static toQueueSpec(listeners = {}) {
+    return Object.entries(listeners).map(([method, handler]) => ({method, handler}))
+  }
+
+  addQueues(connectionConfig, {listeners, rpcListeners}) {
+    this.config.queueConnectionConfig = connectionConfig
+    this.config.consumerQueues = ServiceConfigurationBuilder.toQueueSpec(listeners)
+    this.config.rpcQueues = ServiceConfigurationBuilder.toQueueSpec(rpcListeners)
+  }
+
+  addJob(name, {cron, job} = noopJobDefinition) {
+    this.config.jobs.push({name, cron, job})
+  }
+
   addJobs(jobs) {
-    Object.entries(jobs).forEach(([name, jobConfig]) => {
-      config.jobs.push({name, cron: jobConfig.cron, func: jobConfig.job})
-    })
-  },
+    Object.entries(jobs).forEach(([name, jobConfig]) => this.addJob(name, jobConfig))
+  }
+
   blockchain(web3Url, contractsDir) {
-    config.blockchain = {web3Url, contractsDir}
-  },
-})
+    this.config.blockchain = {web3Url, contractsDir}
+  }
+}
 
 const initRouter = (initRoutes, jwtSecret) => {
   const router = new express.Router()
@@ -91,7 +97,7 @@ const initRouter = (initRoutes, jwtSecret) => {
   return router
 }
 
-const initExpress = (app, config = apiServerConfigDefinition, clientRootDist) => {
+const initExpress = async (app, config = noopServerConfigDefinition, clientRootDist) => {
   if (config.cors) {
     app.use(cors({credentials: true, origin: true}))
   }
@@ -109,51 +115,56 @@ const initExpress = (app, config = apiServerConfigDefinition, clientRootDist) =>
   app.use(`/api/v${config.version}`, initRouter(config.routes, config.jwtSecret))
   app.use(expressStatusMonitor())
   app.use(errorHandler)
+
+  return new Promise((resolve, reject) => {
+    try {
+      const server = app.listen(config.port, () => {
+        logger.info({binding: server.address()}, 'http server started')
+        resolve(app)
+      })
+    } catch (e) {
+      logger.error(e)
+      reject(e)
+    }
+  })
 }
 
-const addRpcRoute = (router, queueName, routePath, cb) => {
-  router.respondTo(`${queueName}/${routePath}`, cb)
+const initQueues = async (serviceName, {queueConnectionConfig, consumerQueues, rpcQueues}) => {
+  const {mqConnections} = await createMqConnections(queueConnectionConfig)
+  const {rpcServer, pubsubClient} = await mqConnections
+  consumerQueues.forEach(({method, handler}) =>
+    pubsubClient.subscribe(serviceName, method, handler))
+
+  const rpcRouter = new RpcRouter()
+  rpcQueues.forEach(({method, handler}) =>
+    rpcRouter.respondTo(serviceName, method, handler))
+  rpcServer.use(rpcRouter).start()
 }
 
-const createService = (serviceName, builderFunc = defaultBuilder) => ({
+const createService = (serviceName, builderFunc = noopBuilder) => ({
   async start() {
-    const config = Object.assign({}, defaultConfig)
-    builderFunc(Builder(config))
-    const app = express()
+    const configBuilder = new ServiceConfigurationBuilder()
+    builderFunc(configBuilder)
+    const {config} = configBuilder
+
     if (config.databaseUrl) {
       await dbInit(config.databaseUrl, config.models)
     }
+
+    const app = express() // should this be inside apiServerConfig check?
     if (config.apiServerConfig) {
-      initExpress(app, config.apiServerConfig, config.clientRootDist)
-      await new Promise((resolve, reject) => {
-        try {
-          const server = app.listen(config.apiServerConfig.port, () => {
-            logger.info({binding: server.address()}, 'http server started')
-            resolve(app)
-          })
-        } catch (e) {
-          logger.error(e)
-          reject(e)
-        }
-      })
+      await initExpress(app, config.apiServerConfig, config.clientRootDist)
     }
-    await Promise.all(Object.entries(config.consumerQueues).map(([name, {cb, connectionUrl}]) =>
-      makeTaskConsumer(cb, connectionUrl, name)))
 
-    await Promise.all(Object.entries(config.rpcQueues)
-      .map(([name, {initRoutes, connectionConfig}]) => {
-        const server = new RpcServer()
-        const router = new RpcServer.Router()
-        initRoutes(addRpcRoute.bind(null, router, name))
-        server.use(router)
-        return server.start(connectionConfig)
-      }))
-
-    config.jobs.forEach(({name, cron, func}) => scheduleJob(name, cron, func))
-
-    if (config.blockchain) {
-      await initBlockchain(config.blockchain.web3Url, config.blockchain.contractsDir)
+    if (config.queueConnectionConfig) {
+      await initQueues(serviceName, config)
     }
+
+    config.jobs.forEach(({name, cron, job}) => scheduleJob(name, cron, job))
+
+    // if (config.blockchain) {
+    //   await initBlockchain(config.blockchain.web3Url, config.blockchain.contractsDir)
+    // }
   },
 })
 
