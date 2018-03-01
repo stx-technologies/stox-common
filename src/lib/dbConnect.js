@@ -4,9 +4,7 @@ const {promisify} = require('util')
 
 const asyncTimeout = promisify(setTimeout)
 
-const db = {}
-
-const connect = async (pgurl = null, sequelizeModels) => {
+const connect = async (pgurl = null, sequelizeModels, db) => {
   logger.info('initializing database connection...')
 
   if (db.sequelize) {
@@ -33,10 +31,10 @@ const connect = async (pgurl = null, sequelizeModels) => {
   Object.assign(db, sequelizeInstance.models)
 }
 let retryCount = 0
-const dbInit = async (pgurl = null, dbModel) => {
+const dbInit = async (pgurl = null, dbModel, db) => {
   const maxRetries = 20
   try {
-    return await connect(pgurl, dbModel)
+    return await connect(pgurl, dbModel, db)
   } catch (error) {
     logger.error(error)
     retryCount++
@@ -46,11 +44,9 @@ const dbInit = async (pgurl = null, dbModel) => {
     } else {
       await asyncTimeout(3000)
       logger.info('retrying...')
-      return dbInit(pgurl, dbModel)
+      return dbInit(pgurl, dbModel, db)
     }
   }
 }
 
-db.dbInit = dbInit
-
-module.exports = db
+module.exports = dbInit
