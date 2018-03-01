@@ -4,6 +4,8 @@ const PubsubClient = require('./pubsub')
 const RpcRouter = require('./router')
 const {connectToStompit} = require('./mq')
 
+const mq = {}
+
 const defaultOptions = {
   timeout: 3000,
 }
@@ -37,7 +39,10 @@ const createMqConnections = (connectOptions, options = {}) => {
     (method, body = {}, headers = {}) =>
       mqConnections.then(({rpcClient}) =>
         rpcClient.call(method, body, {...defaultOptions, headers}))
-  return {rpc, publish, subscribe, mqConnections}
+
+  Object.assign(mq, {rpc, publish, subscribe, mqConnections})
+
+  return mq
 }
 
-module.exports = {createMqConnections, RpcRouter}
+module.exports = {createMqConnections, RpcRouter, mq}

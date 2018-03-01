@@ -69,7 +69,7 @@ class ServiceConfigurationBuilder {
     return Object.entries(listeners).map(([method, handler]) => ({method, handler}))
   }
 
-  addQueues(connectionConfig, {listeners, rpcListeners}) {
+  addQueues(connectionConfig, {listeners, rpcListeners} = {}) {
     this.config.queueConnectionConfig = connectionConfig
     this.config.consumerQueues = ServiceConfigurationBuilder.toQueueSpec(listeners)
     this.config.rpcQueues = ServiceConfigurationBuilder.toQueueSpec(rpcListeners)
