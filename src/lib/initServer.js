@@ -10,7 +10,7 @@ const {
 const fallback = require('express-history-api-fallback')
 const lusca = require('lusca')
 const cors = require('cors')
-const {dbInit, db} = require('./dbConnect')
+const db = require('./dbConnect')
 const {scheduleJob} = require('./schedule')
 const {createMqConnections, RpcRouter, mq} = require('./mq')
 const blockchain = require('./blockchain')
@@ -147,7 +147,7 @@ const createService = (serviceName, builderFunc = noopBuilder) => ({
     const {config} = configBuilder
 
     if (config.databaseUrl) {
-      await dbInit(config.databaseUrl, config.models)
+      await db.dbInit(config.databaseUrl, config.models)
     }
 
     const app = express() // should this be inside apiServerConfig check?
