@@ -10,10 +10,10 @@ const {
 const fallback = require('express-history-api-fallback')
 const lusca = require('lusca')
 const cors = require('cors')
-const dbInit = require('./dbConnect')
+const {dbInit, db} = require('./dbConnect')
 const {scheduleJob} = require('./schedule')
-const {createMqConnections, RpcRouter} = require('./mq')
-// const {initBlockchain} = require('./blockchain')
+const {createMqConnections, RpcRouter, mq} = require('./mq')
+const blockchain = require('./blockchain')
 
 const defaultConfig = {
   clientRootDist: '',
@@ -56,13 +56,12 @@ class ServiceConfigurationBuilder {
     this.config.clientRootDist = clientRootDist
   }
 
-  db(databaseUrl, models, db) {
+  db(databaseUrl, models) {
     this.config.databaseUrl = databaseUrl
     this.config.models = models
-    this.config.db = db
   }
 
-  api(apiServerConfig/* = noopServerConfigDefinition */) {
+  api(apiServerConfig /* = noopServerConfigDefinition */) {
     this.config.apiServerConfig = apiServerConfig
   }
 
@@ -137,8 +136,7 @@ const initQueues = async (serviceName, {queueConnectionConfig, consumerQueues, r
     pubsubClient.subscribe(serviceName, method, handler))
 
   const rpcRouter = new RpcRouter()
-  rpcQueues.forEach(({method, handler}) =>
-    rpcRouter.respondTo(serviceName, method, handler))
+  rpcQueues.forEach(({method, handler}) => rpcRouter.respondTo(serviceName, method, handler))
   rpcServer.use(rpcRouter).start()
 }
 
@@ -149,7 +147,7 @@ const createService = (serviceName, builderFunc = noopBuilder) => ({
     const {config} = configBuilder
 
     if (config.databaseUrl) {
-      await dbInit(config.databaseUrl, config.models, config.db)
+      await dbInit(config.databaseUrl, config.models)
     }
 
     const app = express() // should this be inside apiServerConfig check?
@@ -163,9 +161,15 @@ const createService = (serviceName, builderFunc = noopBuilder) => ({
 
     config.jobs.forEach(({name, cron, job}) => scheduleJob(name, cron, job))
 
-    // if (config.blockchain) {
-    //   await initBlockchain(config.blockchain.web3Url, config.blockchain.contractsDir)
-    // }
+    if (config.blockchain) {
+      await blockchain.initBlockchain(config.blockchain.web3Url, config.blockchain.contractsDir)
+    }
+
+    return {
+      mq,
+      blockchain,
+      db,
+    }
   },
 })
 
