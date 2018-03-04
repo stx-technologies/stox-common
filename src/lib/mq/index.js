@@ -56,4 +56,4 @@ const initQueues = async (serviceName, {queueConnectionConfig, consumerQueues, r
   rpcServer.use(rpcRouter).start()
 }
 
-module.exports = {initQueues, mq}
+module.exports = {createMqConnections, initQueues, mq}
