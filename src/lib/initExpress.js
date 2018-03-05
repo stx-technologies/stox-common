@@ -20,7 +20,7 @@ const initRouter = (initRoutes, jwtSecret) => {
   return router
 }
 
-const initExpress = async (config, clientRootDist) => {
+const initExpress = async (config) => {
   const app = express()
   if (config.cors) {
     app.use(cors({credentials: true, origin: true}))
