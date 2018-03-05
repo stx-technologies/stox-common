@@ -49,7 +49,7 @@ const initQueues = async (serviceName, {queueConnectionConfig, consumerQueues, r
   const {mqConnections} = await createMqConnections(queueConnectionConfig)
   const {rpcServer, pubsubClient} = await mqConnections
   consumerQueues.forEach(({method, handler}) =>
-    pubsubClient.subscribe(serviceName, method, handler))
+    pubsubClient.subscribe(method, handler))
 
   const rpcRouter = new RpcRouter()
   rpcQueues.forEach(({method, handler}) => rpcRouter.respondTo(serviceName, method, handler))
