@@ -45,4 +45,15 @@ const createMqConnections = (connectOptions, options = {}) => {
   return mq
 }
 
-module.exports = {createMqConnections, RpcRouter, mq}
+const initQueues = async (serviceName, {queueConnectionConfig, consumerQueues, rpcQueues}) => {
+  const {mqConnections} = await createMqConnections(queueConnectionConfig)
+  const {rpcServer, pubsubClient} = await mqConnections
+  consumerQueues.forEach(({method, handler}) =>
+    pubsubClient.subscribe(serviceName, method, handler))
+
+  const rpcRouter = new RpcRouter()
+  rpcQueues.forEach(({method, handler}) => rpcRouter.respondTo(serviceName, method, handler))
+  rpcServer.use(rpcRouter).start()
+}
+
+module.exports = {createMqConnections, initQueues, mq}
