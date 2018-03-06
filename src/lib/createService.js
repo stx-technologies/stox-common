@@ -2,19 +2,20 @@ const db = require('./dbInit')
 const initExpress = require('./initExpress')
 const {scheduleJob} = require('./schedule')
 const {initQueues, mq} = require('./mq')
+const blockchain = require('./blockchain')
 
 const defaultConfig = {
   clientRootDist: '',
   databaseUrl: '',
-  // eslint-disable-next-line no-unused-vars
-  models: (sequalize) => {},
-  // eslint-disable-next-line no-unused-vars
-  initRoutesFunc: (router, createEndpoint, secure) => {},
+  models: (sequalize) => {}, // eslint-disable-line no-unused-vars
+  initRoutesFunc: (router, createEndpoint, secure) => {}, // eslint-disable-line no-unused-vars
   jobs: [],
   apis: [],
   queueConnectionConfig: null,
   consumerQueues: {},
   rpcQueues: {},
+  web3Url: '',
+  contractsDirPath: '',
 }
 
 // eslint-disable-next-line no-unused-vars
@@ -40,8 +41,19 @@ class ServiceConfigurationBuilder {
   }
 
   db(databaseUrl, models) {
+    if (!databaseUrl || !models) {
+      throw new Error('ServiceConfigurationBuilder.db missing required param')
+    }
     this.config.databaseUrl = databaseUrl
     this.config.models = models
+  }
+
+  blockchain(web3Url, contractsDirPath) {
+    if (!web3Url || !contractsDirPath) {
+      throw new Error('ServiceConfigurationBuilder.blockchain missing required param')
+    }
+    this.config.web3Url = web3Url
+    this.config.contractsDirPath = contractsDirPath
   }
 
   /**
@@ -56,6 +68,9 @@ class ServiceConfigurationBuilder {
   }
 
   addQueues(connectionConfig, {listeners, rpcListeners} = {}) {
+    if (!connectionConfig) {
+      throw new Error('ServiceConfigurationBuilder.addQueues missing required param')
+    }
     this.config.queueConnectionConfig = connectionConfig
     this.config.consumerQueues = ServiceConfigurationBuilder.toQueueSpec(listeners)
     this.config.rpcQueues = ServiceConfigurationBuilder.toQueueSpec(rpcListeners)
@@ -84,28 +99,33 @@ const noopBuilder = (builder) => {}
  * @param {String} serviceName
  * @param {noopBuilder} builderFunc
  */
-const createService = (serviceName, builderFunc) => ({
-  async start() {
-    const configBuilder = new ServiceConfigurationBuilder(builderFunc)
-    const {config} = configBuilder
-    if (config.databaseUrl) {
-      await db.dbInit(config.databaseUrl, config.models)
-    }
+const createService = async (serviceName, builderFunc) => {
+  const {config} = new ServiceConfigurationBuilder(builderFunc)
 
-    await Promise.all(config.apis.map(apiServerConfig => initExpress(apiServerConfig)))
+  if (config.databaseUrl && config.models) {
+    await db.dbInit(config.databaseUrl, config.models)
+  }
 
-    if (config.queueConnectionConfig) {
-      await initQueues(serviceName, config)
-    }
+  if (config.web3Url && config.contractsDirPath) {
+    blockchain.init(config.web3Url, config.contractsDirPath)
+  }
 
-    config.jobs.forEach(({name, cron, job}) => scheduleJob(name, cron, job))
+  if (config.queueConnectionConfig) {
+    await initQueues(serviceName, config)
+  }
 
-    return {
+  return {
+    context: {
       mq,
       db,
-    }
-  },
-})
+      blockchain,
+    },
+    async start() {
+      await Promise.all(config.apis.map(apiServerConfig => initExpress(apiServerConfig)))
+      config.jobs.forEach(({name, cron, job}) => scheduleJob(name, cron, job))
+    },
+  }
+}
 
 module.exports = {
   createService,

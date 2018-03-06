@@ -49,7 +49,7 @@ class PubsubClient extends StompitClient {
    */
   publish(queue, content, additionalHeaders = {}) {
     const headers = {...additionalHeaders, destination: queue}
-    this.logger.info({content, headers}, 'publishing message')
+    this.logger.info({headers}, 'publishing message')
     sendFrame(this.client, content, headers)
   }
 }
