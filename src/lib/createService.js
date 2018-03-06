@@ -99,33 +99,33 @@ const noopBuilder = (builder) => {}
  * @param {String} serviceName
  * @param {noopBuilder} builderFunc
  */
-const createService = (serviceName, builderFunc) => ({
-  async start() {
-    const configBuilder = new ServiceConfigurationBuilder(builderFunc)
-    const {config} = configBuilder
-    if (config.databaseUrl) {
-      await db.dbInit(config.databaseUrl, config.models)
-    }
+const createService = async (serviceName, builderFunc) => {
+  const {config} = new ServiceConfigurationBuilder(builderFunc)
 
-    if (config.web3Url) {
-      blockchain.init(config.web3Url, config.contractsDirPath)
-    }
+  if (config.databaseUrl && config.models) {
+    await db.dbInit(config.databaseUrl, config.models)
+  }
 
-    await Promise.all(config.apis.map(apiServerConfig => initExpress(apiServerConfig)))
+  if (config.web3Url && config.contractsDirPath) {
+    blockchain.init(config.web3Url, config.contractsDirPath)
+  }
 
-    if (config.queueConnectionConfig) {
-      await initQueues(serviceName, config)
-    }
+  if (config.queueConnectionConfig) {
+    await initQueues(serviceName, config)
+  }
 
-    config.jobs.forEach(({name, cron, job}) => scheduleJob(name, cron, job))
-
-    return {
+  return {
+    context: {
       mq,
       db,
       blockchain,
-    }
-  },
-})
+    },
+    async start() {
+      await Promise.all(config.apis.map(apiServerConfig => initExpress(apiServerConfig)))
+      config.jobs.forEach(({name, cron, job}) => scheduleJob(name, cron, job))
+    },
+  }
+}
 
 module.exports = {
   createService,
