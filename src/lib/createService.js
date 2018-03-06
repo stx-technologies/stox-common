@@ -2,19 +2,20 @@ const db = require('./dbInit')
 const initExpress = require('./initExpress')
 const {scheduleJob} = require('./schedule')
 const {initQueues, mq} = require('./mq')
+const blockchain = require('./blockchain')
 
 const defaultConfig = {
   clientRootDist: '',
   databaseUrl: '',
-  // eslint-disable-next-line no-unused-vars
-  models: (sequalize) => {},
-  // eslint-disable-next-line no-unused-vars
-  initRoutesFunc: (router, createEndpoint, secure) => {},
+  models: (sequalize) => {}, // eslint-disable-line no-unused-vars
+  initRoutesFunc: (router, createEndpoint, secure) => {}, // eslint-disable-line no-unused-vars
   jobs: [],
   apis: [],
   queueConnectionConfig: null,
   consumerQueues: {},
   rpcQueues: {},
+  web3Url: '',
+  contractsDirPath: '',
 }
 
 // eslint-disable-next-line no-unused-vars
@@ -40,8 +41,19 @@ class ServiceConfigurationBuilder {
   }
 
   db(databaseUrl, models) {
+    if (!databaseUrl || !models) {
+      throw new Error('ServiceConfigurationBuilder.db missing required param')
+    }
     this.config.databaseUrl = databaseUrl
     this.config.models = models
+  }
+
+  blockchain(web3Url, contractsDirPath) {
+    if (!web3Url || !contractsDirPath) {
+      throw new Error('ServiceConfigurationBuilder.blockchain missing required param')
+    }
+    this.config.web3Url = web3Url
+    this.config.contractsDirPath = contractsDirPath
   }
 
   /**
@@ -56,6 +68,9 @@ class ServiceConfigurationBuilder {
   }
 
   addQueues(connectionConfig, {listeners, rpcListeners} = {}) {
+    if (!connectionConfig) {
+      throw new Error('ServiceConfigurationBuilder.addQueues missing required param')
+    }
     this.config.queueConnectionConfig = connectionConfig
     this.config.consumerQueues = ServiceConfigurationBuilder.toQueueSpec(listeners)
     this.config.rpcQueues = ServiceConfigurationBuilder.toQueueSpec(rpcListeners)
@@ -92,6 +107,10 @@ const createService = (serviceName, builderFunc) => ({
       await db.dbInit(config.databaseUrl, config.models)
     }
 
+    if (config.web3Url) {
+      blockchain.init(config.web3Url, config.contractsDirPath)
+    }
+
     await Promise.all(config.apis.map(apiServerConfig => initExpress(apiServerConfig)))
 
     if (config.queueConnectionConfig) {
@@ -103,6 +122,7 @@ const createService = (serviceName, builderFunc) => ({
     return {
       mq,
       db,
+      blockchain,
     }
   },
 })
