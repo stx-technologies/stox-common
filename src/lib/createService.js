@@ -114,16 +114,13 @@ const createService = async (serviceName, builderFunc) => {
     await initQueues(serviceName, config)
   }
 
+  await Promise.all(config.apis.map(apiServerConfig => initExpress(apiServerConfig)))
+  config.jobs.forEach(({name, cron, job}) => scheduleJob(name, cron, job))
+
   return {
-    context: {
-      mq,
-      db,
-      blockchain,
-    },
-    async start() {
-      await Promise.all(config.apis.map(apiServerConfig => initExpress(apiServerConfig)))
-      config.jobs.forEach(({name, cron, job}) => scheduleJob(name, cron, job))
-    },
+    mq,
+    db,
+    blockchain,
   }
 }
 
