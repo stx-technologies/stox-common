@@ -7,7 +7,8 @@ createMqConnections('localhost:61613')
 
 mq.mqConnections.then(() => logger.info('connected'))
 
-mq.rpc('/add', {number: 1})
+mq
+  .rpc('/add', {number: 1})
   .then(response => logger.info(response, 'SUCCESS'))
   .catch(error => logger.error(error, 'RPC ERRORED'))
 

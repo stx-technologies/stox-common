@@ -17,12 +17,7 @@ const fromStompHeaders = makeHeaderParser(camelCase)
 const stripSlash = method => (method[0] === '/' ? method.substr(1) : method)
 
 const parseConnectionString = (path) => {
-  const {
-    hostname: host,
-    port = 61613,
-    user: login,
-    password: passcode,
-  } = connectionString(path)
+  const {hostname: host, port = 61613, user: login, password: passcode} = connectionString(path)
   return {host, port, connectHeaders: {login, passcode}}
 }
 
