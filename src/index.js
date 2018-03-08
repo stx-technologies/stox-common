@@ -6,14 +6,14 @@ const errorHandle = require('./utils/errorHandle')
 const promiseSerial = require('./utils/promise')
 
 const utils = {
-  createService,
-  schedule,
-  errors,
-  http,
   errorHandle,
   promiseSerial,
 }
 
 module.exports = {
+  createService,
+  schedule,
+  errors,
+  http,
   utils,
 }
