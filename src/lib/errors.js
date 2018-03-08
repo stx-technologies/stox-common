@@ -1,8 +1,7 @@
 const {loggers: {logger}} = require('@welldone-software/node-toolbelt')
 const {assignWith} = require('lodash')
 
-const assignWithCustomizer = (objValue, srcValue) =>
-  (objValue === undefined ? srcValue : objValue)
+const assignWithCustomizer = (objValue, srcValue) => (objValue === undefined ? srcValue : objValue)
 
 class DbError extends Error {
   constructor(baseError) {

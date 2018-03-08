@@ -53,5 +53,4 @@ const initExpress = async (config) => {
   })
 }
 
-
 module.exports = initExpress
