@@ -5,11 +5,15 @@ const http = require('./lib/http')
 const errorHandle = require('./utils/errorHandle')
 const promiseSerial = require('./utils/promise')
 
-module.exports = {
+const utils = {
   createService,
   schedule,
   errors,
   http,
   errorHandle,
   promiseSerial,
+}
+
+module.exports = {
+  utils,
 }
