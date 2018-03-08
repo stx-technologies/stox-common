@@ -43,22 +43,24 @@ const subscribeToQueue = (client, destination, handler) =>
 
       const headers = fromStompHeaders(message.headers)
       headers.ok = headers.ok !== 'false'
-      message.readString('utf-8', async (messageError, responseContent) => {
-        try {
-          if (messageError) {
-            await handler(new RpcError('message parse error', messageError))
-            return
-          }
+      await new Promise((resolve, reject) => {
+        message.readString('utf-8', async (messageError, responseContent) => {
+          try {
+            if (messageError) {
+              await handler(new RpcError('message parse error', messageError))
+              return resolve()
+            }
 
-          const body = JSON.parse(responseContent)
-          const response = {headers, body}
-          await handler(null, response)
-        } catch (e) {
-          logger.error('Error in queue handler', {destination})
-        }
+            const body = JSON.parse(responseContent)
+            const response = {headers, body}
+            resolve(await handler(null, response))
+          } catch (e) {
+            reject(e)
+          }
+        })
       })
-    } catch (e) {
-      logger.error('Error in queue handler', {destination})
+    } catch (error) {
+      logger.error(`Error in queue handler: ${destination}`, error)
     }
   })
 
