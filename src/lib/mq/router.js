@@ -14,8 +14,11 @@ class RpcRouter {
    *  May be sync or async
    */
   respondTo(baseOrMethod, methodOrHandler, handlerOrNothing) {
-    const [methodQueue, handler] =
-      subscriptionParameters(baseOrMethod, methodOrHandler, handlerOrNothing)
+    const [methodQueue, handler] = subscriptionParameters(
+      baseOrMethod,
+      methodOrHandler,
+      handlerOrNothing
+    )
 
     validateHandlerIsFunction('RpcRouter.respondTo()', handler)
 

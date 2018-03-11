@@ -1,10 +1,5 @@
 const {loggers: {logger: wdLogger}} = require('@welldone-software/node-toolbelt')
-const {
-  createStompitClientFactory,
-  StompitClient,
-  subscribeToQueue,
-  sendFrame,
-} = require('./mq')
+const {createStompitClientFactory, StompitClient, subscribeToQueue, sendFrame} = require('./mq')
 const {subscriptionParameters, validateHandlerIsFunction} = require('./utils')
 
 class PubsubClient extends StompitClient {
@@ -29,8 +24,11 @@ class PubsubClient extends StompitClient {
    * @return subscription, on which you can call `unsubscribe`
    */
   subscribe(baseOrMethod, methodOrHandler, handlerOrNothing) {
-    const [methodQueue, handler] =
-      subscriptionParameters(baseOrMethod, methodOrHandler, handlerOrNothing)
+    const [methodQueue, handler] = subscriptionParameters(
+      baseOrMethod,
+      methodOrHandler,
+      handlerOrNothing
+    )
 
     validateHandlerIsFunction('PubsubClient.subscribe()', handler)
 

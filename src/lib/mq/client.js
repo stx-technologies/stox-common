@@ -7,10 +7,14 @@ const {oneLine} = require('common-tags')
 
 const setRpcTimeout = (responseQueue, reject, timeout) => {
   if (timeout > 0) {
-    setTimeout(() => reject(new RpcError(oneLine`
+    setTimeout(
+      () =>
+        reject(new RpcError(oneLine`
       RPC response from ${responseQueue} took more then ${timeout} ms,
       timing out
-    `)), timeout)
+    `)),
+      timeout
+    )
   }
 }
 
@@ -28,10 +32,13 @@ class RpcClient extends StompitClient {
     this.methodToQueueName = {}
     this.id = id || uuid()
 
-    this.logger.debug({id: this.id}, oneLine`
+    this.logger.debug(
+      {id: this.id},
+      oneLine`
       Created RPC Client,
       response queues will be tagged with the following id
-    `)
+    `
+    )
   }
 
   /**
@@ -56,8 +63,12 @@ class RpcClient extends StompitClient {
     }
 
     this.logger.debug({destination}, 'started listening to responses for destination')
-    this.subscriptions[destination] =
-      subscribeRpcHandler(this.client, this.logger, destination, this.getSubscriber(destination))
+    this.subscriptions[destination] = subscribeRpcHandler(
+      this.client,
+      this.logger,
+      destination,
+      this.getSubscriber(destination)
+    )
   }
 
   /**
