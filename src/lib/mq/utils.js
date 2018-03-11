@@ -2,8 +2,8 @@ const {kebabCase, camelCase} = require('lodash')
 const connectionString = require('connection-string')
 const {RpcError} = require('../errors')
 
-const requestQueueName = method => `request/${method}`
-const responseQueueName = (method, id) => `response/${id}/${method}`
+const requestQueueName = method => `${method}`
+const responseQueueName = (method, id) => `${method}/${id}/reply`
 
 const makeHeaderParser = keyMapper => headers =>
   Object.keys(headers).reduce((acc, key) => {
