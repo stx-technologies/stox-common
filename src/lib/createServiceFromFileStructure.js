@@ -45,7 +45,7 @@ module.exports = (
     const apis = requireFile('apis')
     if (apis) {
       logger.info(apis, 'Apis:')
-      builder.addApis(apis)
+      builder.addApis(Object.values(apis))
     }
 
     if (databaseUrl && models) {
