@@ -115,7 +115,7 @@ const createService = async (serviceName, builderFunc) => {
   }
 
   if (config.queueConnectionConfig) {
-    await initQueues(serviceName, config)
+    await initQueues(config)
   }
 
   await Promise.all(config.apis.map(apiServerConfig => initExpress(apiServerConfig)))
