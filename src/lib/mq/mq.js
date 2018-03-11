@@ -60,7 +60,7 @@ const subscribeToQueue = (client, destination, handler) =>
         })
       })
     } catch (error) {
-      logger.error(`Error in queue handler: ${destination}`, error)
+      logger.error(error, `Error in queue handler: ${destination}`)
     }
   })
 
