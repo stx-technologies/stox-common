@@ -1,11 +1,8 @@
+/* eslint-disable consistent-return */
 const {loggers: {logger}} = require('@welldone-software/node-toolbelt')
 const {RpcError} = require('../errors')
 const stompit = require('stompit')
-const {
-  toStompHeaders,
-  fromStompHeaders,
-  toConnectionConfig,
-} = require('./utils')
+const {toStompHeaders, fromStompHeaders, toConnectionConfig} = require('./utils')
 
 const parseMessage = message =>
   new Promise((resolve, reject) =>
@@ -122,7 +119,7 @@ const sendRpc = (
   correlationId,
   responseQueue,
   {headers = {}} = {},
-  rpcLogger,
+  rpcLogger
 ) => {
   const sendHeaders = {
     ...headers,
@@ -154,10 +151,11 @@ const respondToRpc = (client, message, handler, body) =>
   new Promise((resolve, reject) => {
     const [missingHeaders, headers] = toResponseHeaders(message.headers)
     if (missingHeaders) {
-      reject(new RpcError(
-        'Rpc request is missing required headers',
-        {missingHeaders, headers, body}
-      ))
+      reject(new RpcError('Rpc request is missing required headers', {
+        missingHeaders,
+        headers,
+        body,
+      }))
       return
     }
     Promise.resolve()
@@ -203,10 +201,8 @@ const connectToStompit = (configOrConnectionString) => {
     }))
 }
 
-const createStompitClientFactory = ClientType =>
-  (configOrConnectionString, options) =>
-    connectToStompit(configOrConnectionString)
-      .then(stompitClient => new ClientType(stompitClient, options))
+const createStompitClientFactory = ClientType => (configOrConnectionString, options) =>
+  connectToStompit(configOrConnectionString).then(client => new ClientType(client, options))
 
 module.exports = {
   StompitClient,
