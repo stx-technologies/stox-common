@@ -23,14 +23,15 @@ module.exports = (
   const builderFunc = (builder) => {
     const requireFile = requireFromDirname(dirname)
 
-    const models = modelsInput || requireFile('../../common/src/db/models.js')
-    const contractsDir =
-      contractsInput || path.resolve(dirname, '../../common/src/blockchain/contracts')
     const config = requireFile('config.js')
 
     if (!config) {
       throw new Error('Cannot initialize service without config.js')
     }
+
+    const models = modelsInput || requireFile('../../common/src/db/models.js')
+    const contractsDir =
+    contractsInput || path.resolve(dirname, '../../common/src/blockchain/contracts')
 
     const {databaseUrl, mqConnectionUrl, web3Url} = config
 
@@ -59,7 +60,7 @@ module.exports = (
       builder.addJobs(jobs)
     }
 
-    if (web3Url && contractsDir) {
+    if (web3Url && fs.existsSync(contractsDir)) {
       logger.info(web3Url, contractsDir, 'Blockchain:')
       builder.blockchain(web3Url, contractsDir)
     }
