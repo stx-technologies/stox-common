@@ -1,4 +1,4 @@
-const {loggers: {logger: wdLogger}} = require('@welldone-software/node-toolbelt')
+const context = require('../context')
 const {createStompitClientFactory, StompitClient, subscribeToQueue, sendFrame} = require('./mq')
 const {subscriptionParameters, validateHandlerIsFunction} = require('./utils')
 
@@ -9,7 +9,7 @@ class PubsubClient extends StompitClient {
    * @requires stompit
    * {@link http://gdaws.github.io/node-stomp/api/}
    */
-  constructor(stompitClient, {logger = wdLogger} = {}) {
+  constructor(stompitClient, {logger = context.logger} = {}) {
     super(stompitClient, logger, 'PubsubClient')
     this.subscriptions = []
   }
@@ -31,8 +31,6 @@ class PubsubClient extends StompitClient {
     )
 
     validateHandlerIsFunction('PubsubClient.subscribe()', handler)
-
-    this.logger.info(`subscribing to ${methodQueue}`)
 
     const subscription = subscribeToQueue(this.client, methodQueue, handler)
     this.subscriptions.push(subscription)

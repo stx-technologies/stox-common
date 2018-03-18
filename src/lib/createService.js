@@ -3,6 +3,8 @@ const initExpress = require('./initExpress')
 const {scheduleJob} = require('./schedule')
 const {initQueues, mq} = require('./mq')
 const blockchain = require('./blockchain')
+const {loggers: {logger: baseLogger}} = require('@welldone-software/node-toolbelt')
+const context = require('./context')
 
 const defaultConfig = {
   clientRootDist: '',
@@ -18,17 +20,12 @@ const defaultConfig = {
   contractsDirPath: '',
 }
 
-// eslint-disable-next-line no-unused-vars
-const queueCallback = (message) => {}
-// eslint-disable-next-line no-unused-vars
-const noopJobDefinition = {cron: '', job: () => {}}
-
-// eslint-disable-next-line no-unused-vars
-const noopServerConfigDefinition = {
+const queueCallback = (message) => {} // eslint-disable-line no-unused-vars
+const noopJobDefinition = {cron: '', job: () => {}} // eslint-disable-line no-unused-vars
+const noopServerConfigDefinition = { // eslint-disable-line no-unused-vars
   port: 0,
   version: 1,
-  // eslint-disable-next-line no-unused-vars
-  routes: (router, createEndpoint, secure) => {},
+  routes: (router, createEndpoint, secure) => {}, // eslint-disable-line no-unused-vars
   cors: false,
   jwtSecret: '',
   clientRootDist: '',
@@ -96,14 +93,17 @@ class ServiceConfigurationBuilder {
  * @callback builderCallback
  * @param {ServiceConfigurationBuilder} builder
  */
-// eslint-disable-next-line no-unused-vars
-const noopBuilder = (builder) => {}
+const noopBuilder = (builder) => {} // eslint-disable-line no-unused-vars
 
 /**
  * @param {String} serviceName
  * @param {noopBuilder} builderFunc
  */
 const createService = async (serviceName, builderFunc) => {
+  const logger = baseLogger.child({name: serviceName})
+  context.logger = logger
+  context.serviceName = serviceName
+
   const {config} = new ServiceConfigurationBuilder(builderFunc)
 
   if (config.databaseUrl && config.models) {
@@ -125,6 +125,7 @@ const createService = async (serviceName, builderFunc) => {
     mq,
     db,
     blockchain,
+    logger,
   }
 }
 

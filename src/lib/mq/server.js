@@ -1,10 +1,10 @@
-const {loggers: {logger: wdLogger}} = require('@welldone-software/node-toolbelt')
+const context = require('../context')
 const {RpcError} = require('../errors')
 const {requestQueueName} = require('./utils')
 const {respondToRpc, parseMessage, StompitClient, createStompitClientFactory} = require('./mq')
 
 class RpcServer extends StompitClient {
-  constructor(stompitClient, {logger = wdLogger} = {}) {
+  constructor(stompitClient, {logger = context.logger} = {}) {
     super(stompitClient, logger, 'RpcServer')
     this.routers = []
     this.subscriptions = {}
@@ -59,8 +59,10 @@ class RpcServer extends StompitClient {
 
   start() {
     const handlers = RpcServer.mergeRouters(this.routers)
-    this.logger.info(Object.keys(handlers), 'Listening for the following methods')
-    this.subscribeHandlers(handlers)
+    const methods = Object.keys(handlers)
+    if (methods.length) {
+      this.subscribeHandlers(handlers)
+    }
   }
 }
 

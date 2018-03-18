@@ -1,4 +1,4 @@
-const {loggers: {logger}} = require('@welldone-software/node-toolbelt')
+const serviceContext = require('./context')
 const {assignWith} = require('lodash')
 
 const assignWithCustomizer = (objValue, srcValue) => (objValue === undefined ? srcValue : objValue)
@@ -11,7 +11,8 @@ class DbError extends Error {
   toJSON() {
     return assignWith(
       {
-        name: this.constructor.name,
+        name: serviceContext.serviceName,
+        errorName: this.constructor.name,
         message: this.message,
         stack: this.stack,
         context: this.context,
@@ -28,7 +29,8 @@ const errSerializer = (err) => {
   } else if (err instanceof Error) {
     return assignWith(
       {
-        name: err.name || err.constructor.name,
+        name: serviceContext.serviceName,
+        errorName: err.name || err.constructor.name,
         message: err.message,
         stack: err.stack,
         context: err.context,
@@ -51,7 +53,7 @@ class RpcError extends Error {
 const logError = (err) => {
   const error = errSerializer(err)
   delete error.code
-  logger.error(error)
+  serviceContext.logger.error(error)
 }
 
 module.exports = {

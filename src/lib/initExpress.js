@@ -4,12 +4,13 @@ const bodyParser = require('body-parser')
 const expressStatusMonitor = require('express-status-monitor')
 const {
   jwt: {jwtRequest, jwtSecure},
-  loggers: {logger, expressLogger},
+  loggers: {expressLogger},
   expressHelpers: {errorHandler, createApiEndpoint},
 } = require('@welldone-software/node-toolbelt')
 const fallback = require('express-history-api-fallback')
 const lusca = require('lusca')
 const cors = require('cors')
+const context = require('./context')
 
 const initRouter = (initRoutes, jwtSecret) => {
   const router = new express.Router()
@@ -21,6 +22,7 @@ const initRouter = (initRoutes, jwtSecret) => {
 }
 
 const initExpress = async (config) => {
+  const {logger} = context
   const app = express()
   if (config.cors) {
     app.use(cors({credentials: true, origin: true}))
