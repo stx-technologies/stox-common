@@ -1,3 +1,4 @@
+const {loggers: {logger}} = require('@welldone-software/node-toolbelt')
 const {RpcError} = require('../errors')
 const stompit = require('stompit')
 const {toStompHeaders, fromStompHeaders, toConnectionConfig} = require('./utils')
@@ -29,27 +30,37 @@ const sendFrame = (client, message, headers) => {
  * @return subscription object, which you can call `unsubscribe` on
  */
 const subscribeToQueue = (client, destination, handler) =>
-  client.subscribe({destination}, (subscriptionError, message) => {
-    if (subscriptionError) {
-      handler(new RpcError('subscription error', subscriptionError))
-      return
-    }
-
-    const headers = fromStompHeaders(message.headers)
-    headers.ok = headers.ok !== 'false'
-    message.readString('utf-8', (messageError, responseContent) => {
-      if (messageError) {
-        handler(new RpcError('message parse error', messageError))
+  client.subscribe({destination}, async (subscriptionError, message) => {
+    try {
+      if (subscriptionError) {
+        await handler(new RpcError('subscription error', subscriptionError))
         return
       }
 
-      const body = JSON.parse(responseContent)
-      const response = {headers, body}
-      handler(null, response)
-    })
+      const headers = fromStompHeaders(message.headers)
+      headers.ok = headers.ok !== 'false'
+      await new Promise((resolve, reject) => {
+        message.readString('utf-8', async (messageError, responseContent) => {
+          try {
+            if (messageError) {
+              await handler(new RpcError('message parse error', messageError))
+              return resolve()
+            }
+
+            const body = JSON.parse(responseContent)
+            const response = {headers, body}
+            resolve(await handler(null, response))
+          } catch (e) {
+            reject(e)
+          }
+        })
+      })
+    } catch (error) {
+      logger.error(error, `Error in queue handler: ${destination}`)
+    }
   })
 
-const subscribeRpcHandler = (client, logger, destination, getSubscriber) =>
+const subscribeRpcHandler = (client, rpcLogger, destination, getSubscriber) =>
   client.subscribe({destination}, (subscriptionError, message) => {
     if (subscriptionError) {
       throw new RpcError('subscription error', subscriptionError)
@@ -59,7 +70,10 @@ const subscribeRpcHandler = (client, logger, destination, getSubscriber) =>
     const subscriber = getSubscriber(headers.correlationId)
 
     if (!subscriber) {
-      logger.error({destination, correlationId: headers.correlationId}, 'no subscriber for message')
+      rpcLogger.error(
+        {destination, correlationId: headers.correlationId},
+        'no subscriber for message'
+      )
       return
     }
 
@@ -104,7 +118,7 @@ const sendRpc = (
   correlationId,
   responseQueue,
   {headers = {}} = {},
-  logger
+  rpcLogger,
 ) => {
   const sendHeaders = {
     ...headers,
@@ -113,7 +127,7 @@ const sendRpc = (
     correlationId,
   }
 
-  logger.debug({sendHeaders, content}, 'sending frame')
+  rpcLogger.debug({sendHeaders, content}, 'sending frame')
   sendFrame(client, content, sendHeaders)
 }
 
@@ -160,9 +174,9 @@ const respondToRpc = (client, message, handler, body) =>
   })
 
 class StompitClient {
-  constructor(stompitClient, logger, subLoggerName) {
+  constructor(stompitClient, rpcLogger, subLoggerName) {
     this.client = stompitClient
-    this.logger = logger.child({name: subLoggerName})
+    this.logger = rpcLogger.child({name: subLoggerName})
     this.logger.debug(`intialized stopmit client: ${subLoggerName}`)
   }
 

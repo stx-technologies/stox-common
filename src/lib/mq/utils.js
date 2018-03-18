@@ -3,7 +3,7 @@ const connectionString = require('connection-string')
 const {RpcError} = require('../errors')
 
 const requestQueueName = method => `request/${method}`
-const responseQueueName = (method, id) => `response/${id}/${method}`
+const responseQueueName = (method, id) => `response/${method}/${id}/reply`
 
 const makeHeaderParser = keyMapper => headers =>
   Object.keys(headers).reduce((acc, key) => {
@@ -35,7 +35,7 @@ const subscriptionParameters = (baseOrMethod, methodOrHandler, handlerOrNothing)
   methodOrHandler = stripSlash(methodOrHandler)
   baseOrMethod = stripSlash(baseOrMethod)
   const methodQueue = `${baseOrMethod ? `${baseOrMethod}/` : ''}${methodOrHandler}`
-  return [methodQueue, handlerOrNothing]
+  return [kebabCase(methodQueue), handlerOrNothing]
 }
 
 const validateHandlerIsFunction = (method, handler) => {
