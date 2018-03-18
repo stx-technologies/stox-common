@@ -63,6 +63,10 @@ class ServiceConfigurationBuilder {
     this.config.apis.push(apiServerConfig)
   }
 
+  addApis(apiServerConfigs) {
+    this.config.apis = [...apiServerConfigs, ...this.config.apis]
+  }
+
   static toQueueSpec(listeners = {}) {
     return Object.entries(listeners).map(([method, handler]) => ({method, handler}))
   }
