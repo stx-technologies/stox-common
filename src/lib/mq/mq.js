@@ -118,7 +118,7 @@ const sendRpc = (
   correlationId,
   responseQueue,
   {headers = {}} = {},
-  rpcLogger,
+  rpcLogger
 ) => {
   const sendHeaders = {
     ...headers,
