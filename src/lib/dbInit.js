@@ -1,14 +1,12 @@
 const Sequelize = require('sequelize')
-const {loggers: {logger}} = require('@welldone-software/node-toolbelt')
 const {promisify} = require('util')
+const context = require('./context')
 
 const asyncTimeout = promisify(setTimeout)
 
 const db = {}
 
 const connect = async (pgurl = null, sequelizeModels) => {
-  logger.info('initializing database connection...')
-
   if (db.sequelize) {
     throw new Error('database already initialized.')
   }
@@ -24,16 +22,16 @@ const connect = async (pgurl = null, sequelizeModels) => {
   })
 
   await sequelizeInstance.authenticate()
-  logger.info('database connection established successfully.')
 
   sequelizeModels(sequelizeInstance)
-
   db.sequelize = sequelizeInstance
-
   Object.assign(db, sequelizeInstance.models)
+
+  context.logger.info('DATABASE_CONNECTED_SUCCESSFULLY')
 }
 let retryCount = 0
 const dbInit = async (pgurl = null, dbModel) => {
+  const {logger} = context
   const maxRetries = 20
   try {
     return await connect(pgurl, dbModel)

@@ -1,27 +1,29 @@
 const schedule = require('node-schedule')
-const {loggers: {logger}} = require('@welldone-software/node-toolbelt')
 const {logError} = require('./errors')
+const context = require('./context')
 
 const jobs = {}
 const scheduleJob = (name, spec, func) => {
-  logger.info({name, spec}, 'STARTED')
-
   let promise = null
   const job = jobs[name]
+  context.logger.info({job: name, spec}, 'JOB_SCHEDULED')
 
   if (!job) {
     jobs[name] = schedule.scheduleJob(spec, async () => {
       if (!promise) {
-        logger.info({name}, 'IN_CYCLE')
-
         promise = func()
-          .then(() => {
-            promise = null
-          })
-          .catch((e) => {
-            logError(e)
-            promise = null
-          })
+
+        if (promise.then) {
+          context.logger.info({job: name}, 'JOB_IN_CYCLE')
+          promise
+            .then(() => {
+              promise = null
+            })
+            .catch((e) => {
+              logError(e)
+              promise = null
+            })
+        }
       }
     })
   }
@@ -31,7 +33,7 @@ const cancelJob = (name) => {
   const job = jobs[name]
 
   if (job) {
-    logger.info({name}, 'STOPPED')
+    context.logger.info({name}, 'JOB_STOPPED')
     job.cancel()
   }
 }

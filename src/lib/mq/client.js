@@ -1,4 +1,4 @@
-const {loggers: {logger: wdLogger}} = require('@welldone-software/node-toolbelt')
+const context = require('../context')
 const uuid = require('uuid')
 const {sendRpc, subscribeRpcHandler, StompitClient, createStompitClientFactory} = require('./mq')
 const {requestQueueName, responseQueueName, stripSlash} = require('./utils')
@@ -25,7 +25,7 @@ class RpcClient extends StompitClient {
    * @requires stompit
    * {@link http://gdaws.github.io/node-stomp/api/}
    */
-  constructor(stompitClient, {id, logger = wdLogger} = {}) {
+  constructor(stompitClient, {id, logger = context.logger} = {}) {
     super(stompitClient, logger, 'RpcClient')
     this.subscriptions = {}
     this.subscribers = {}

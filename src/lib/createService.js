@@ -3,6 +3,8 @@ const initExpress = require('./initExpress')
 const {scheduleJob} = require('./schedule')
 const {initQueues, mq} = require('./mq')
 const blockchain = require('./blockchain')
+const {loggers: {logger: baseLogger}} = require('@welldone-software/node-toolbelt')
+const context = require('./context')
 
 const defaultConfig = {
   clientRootDist: '',
@@ -18,17 +20,12 @@ const defaultConfig = {
   contractsDirPath: '',
 }
 
-// eslint-disable-next-line no-unused-vars
-const queueCallback = (message) => {}
-// eslint-disable-next-line no-unused-vars
-const noopJobDefinition = {cron: '', job: () => {}}
-
-// eslint-disable-next-line no-unused-vars
-const noopServerConfigDefinition = {
+const queueCallback = (message) => {} // eslint-disable-line no-unused-vars
+const noopJobDefinition = {cron: '', job: () => {}} // eslint-disable-line no-unused-vars
+const noopServerConfigDefinition = { // eslint-disable-line no-unused-vars
   port: 0,
   version: 1,
-  // eslint-disable-next-line no-unused-vars
-  routes: (router, createEndpoint, secure) => {},
+  routes: (router, createEndpoint, secure) => {}, // eslint-disable-line no-unused-vars
   cors: false,
   jwtSecret: '',
   clientRootDist: '',
@@ -41,17 +38,11 @@ class ServiceConfigurationBuilder {
   }
 
   db(databaseUrl, models) {
-    if (!databaseUrl || !models) {
-      throw new Error('ServiceConfigurationBuilder.db missing required param')
-    }
     this.config.databaseUrl = databaseUrl
     this.config.models = models
   }
 
   blockchain(web3Url, contractsDirPath) {
-    if (!web3Url || !contractsDirPath) {
-      throw new Error('ServiceConfigurationBuilder.blockchain missing required param')
-    }
     this.config.web3Url = web3Url
     this.config.contractsDirPath = contractsDirPath
   }
@@ -72,9 +63,6 @@ class ServiceConfigurationBuilder {
   }
 
   addQueues(connectionConfig, {listeners, rpcListeners} = {}) {
-    if (!connectionConfig) {
-      throw new Error('ServiceConfigurationBuilder.addQueues missing required param')
-    }
     this.config.queueConnectionConfig = connectionConfig
     this.config.consumerQueues = ServiceConfigurationBuilder.toQueueSpec(listeners)
     this.config.rpcQueues = ServiceConfigurationBuilder.toQueueSpec(rpcListeners)
@@ -96,21 +84,30 @@ class ServiceConfigurationBuilder {
  * @callback builderCallback
  * @param {ServiceConfigurationBuilder} builder
  */
-// eslint-disable-next-line no-unused-vars
-const noopBuilder = (builder) => {}
+const noopBuilder = (builder) => {} // eslint-disable-line no-unused-vars
 
 /**
  * @param {String} serviceName
  * @param {noopBuilder} builderFunc
  */
 const createService = async (serviceName, builderFunc) => {
+  const logger = baseLogger.child({name: serviceName})
+  context.logger = logger
+  context.serviceName = serviceName
+
   const {config} = new ServiceConfigurationBuilder(builderFunc)
 
-  if (config.databaseUrl && config.models) {
+  if (config.databaseUrl) {
+    if (!config.models) {
+      throw new Error('db is missing required \'models\' param')
+    }
     await db.dbInit(config.databaseUrl, config.models)
   }
 
-  if (config.web3Url && config.contractsDirPath) {
+  if (config.web3Url) {
+    if (!config.contractsDirPath) {
+      throw new Error('blockchain is missing required \'contractsDirPath\' param')
+    }
     blockchain.init(config.web3Url, config.contractsDirPath)
   }
 
@@ -125,6 +122,7 @@ const createService = async (serviceName, builderFunc) => {
     mq,
     db,
     blockchain,
+    logger,
   }
 }
 

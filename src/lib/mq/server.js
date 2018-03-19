@@ -1,10 +1,10 @@
-const {loggers: {logger: wdLogger}} = require('@welldone-software/node-toolbelt')
+const context = require('../context')
 const {RpcError} = require('../errors')
 const {requestQueueName} = require('./utils')
 const {respondToRpc, parseMessage, StompitClient, createStompitClientFactory} = require('./mq')
 
 class RpcServer extends StompitClient {
-  constructor(stompitClient, {logger = wdLogger} = {}) {
+  constructor(stompitClient, {logger = context.logger} = {}) {
     super(stompitClient, logger, 'RpcServer')
     this.routers = []
     this.subscriptions = {}
@@ -39,18 +39,19 @@ class RpcServer extends StompitClient {
 
       parseMessage(message)
         .then((body) => {
-          this.logger.info({headers: message.headers, body}, 'received message')
+          this.logger.info({headers: message.headers, body}, 'RPC_RECEIVED')
           return body
         })
         .then(body => respondToRpc(this.client, message, handler, body))
         .then(({headers, response}) =>
-          this.logger.info({headers, response, origin}, 'handled method'))
-        .catch(error => this.logger.error({error, origin}, 'error handling method'))
+          this.logger.info({headers, response, origin}, 'RPC_HANDLED'))
+        .catch(error => this.logger.error({error, origin}, 'RPC_HANDLED_ERROR'))
     })
   }
 
   subscribeHandlers(handlers) {
     this.subscriptions = Object.entries(handlers).reduce((acc, [origin, handler]) => {
+      this.logger.info({queue: origin}, 'RPC_QUEUE_SUBSCRIBED')
       const subscription = this.subscribeHandler(origin, handler)
       acc[origin] = subscription
       return acc
@@ -59,8 +60,10 @@ class RpcServer extends StompitClient {
 
   start() {
     const handlers = RpcServer.mergeRouters(this.routers)
-    this.logger.info(Object.keys(handlers), 'Listening for the following methods')
-    this.subscribeHandlers(handlers)
+    const methods = Object.keys(handlers)
+    if (methods.length) {
+      this.subscribeHandlers(handlers)
+    }
   }
 }
 

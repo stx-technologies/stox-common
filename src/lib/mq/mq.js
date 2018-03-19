@@ -1,4 +1,4 @@
-const {loggers: {logger}} = require('@welldone-software/node-toolbelt')
+const serviceContext = require('../context')
 const {RpcError} = require('../errors')
 const stompit = require('stompit')
 const {toStompHeaders, fromStompHeaders, toConnectionConfig} = require('./utils')
@@ -33,30 +33,29 @@ const subscribeToQueue = (client, destination, handler) =>
   client.subscribe({destination}, async (subscriptionError, message) => {
     try {
       if (subscriptionError) {
-        await handler(new RpcError('subscription error', subscriptionError))
-        return
+        throw new RpcError('subscription error', subscriptionError)
       }
 
       const headers = fromStompHeaders(message.headers)
       headers.ok = headers.ok !== 'false'
       await new Promise((resolve, reject) => {
+        // eslint-disable-next-line consistent-return
         message.readString('utf-8', async (messageError, responseContent) => {
           try {
             if (messageError) {
-              await handler(new RpcError('message parse error', messageError))
-              return resolve()
+              throw new RpcError('message parse error', messageError)
             }
 
             const body = JSON.parse(responseContent)
             const response = {headers, body}
-            resolve(await handler(null, response))
+            resolve(await handler(response))
           } catch (e) {
             reject(e)
           }
         })
       })
     } catch (error) {
-      logger.error(error, `Error in queue handler: ${destination}`)
+      serviceContext.logger.error(error, `Error in queue handler: ${destination}`)
     }
   })
 
@@ -80,7 +79,6 @@ const subscribeRpcHandler = (client, rpcLogger, destination, getSubscriber) =>
     message.readString('utf-8', (messageError, responseContent) => {
       if (messageError) {
         subscriber.reject(new RpcError('message parse error', messageError))
-        return
       }
 
       const body = JSON.parse(responseContent)
@@ -176,7 +174,8 @@ const respondToRpc = (client, message, handler, body) =>
 class StompitClient {
   constructor(stompitClient, rpcLogger, subLoggerName) {
     this.client = stompitClient
-    this.logger = rpcLogger.child({name: subLoggerName})
+    const {serviceName} = serviceContext
+    this.logger = rpcLogger.child({name: `${serviceName ? `${serviceName}/` : ''}${subLoggerName}`})
     this.logger.debug(`intialized stopmit client: ${subLoggerName}`)
   }
 

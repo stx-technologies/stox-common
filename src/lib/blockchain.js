@@ -1,6 +1,7 @@
 const Web3 = require('web3')
 const fs = require('fs')
 const path = require('path')
+const context = require('./context')
 
 const blockchain = {
   web3: {},
@@ -19,6 +20,7 @@ blockchain.init = (web3Url, contractsDirPath) => {
   }, {})
   Object.assign(blockchain, {...contracts})
   Object.assign(blockchain.web3, web3)
+  context.logger.info('BLOCKCHAIN_CONNECTED_SUCCESSFULLY')
 }
 
 module.exports = blockchain
