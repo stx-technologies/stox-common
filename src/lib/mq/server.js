@@ -61,6 +61,7 @@ class RpcServer extends StompitClient {
     const handlers = RpcServer.mergeRouters(this.routers)
     const methods = Object.keys(handlers)
     if (methods.length) {
+      this.logger.info(methods, 'Listening for the following methods')
       this.subscribeHandlers(handlers)
     }
   }

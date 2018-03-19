@@ -24,10 +24,10 @@ const connect = async (pgurl = null, sequelizeModels) => {
   await sequelizeInstance.authenticate()
 
   sequelizeModels(sequelizeInstance)
-
   db.sequelize = sequelizeInstance
-
   Object.assign(db, sequelizeInstance.models)
+
+  context.logger.info('DATABASE_CONNECTED_SUCCESSFULLY')
 }
 let retryCount = 0
 const dbInit = async (pgurl = null, dbModel) => {
