@@ -33,8 +33,7 @@ const subscribeToQueue = (client, destination, handler) =>
   client.subscribe({destination}, async (subscriptionError, message) => {
     try {
       if (subscriptionError) {
-        await handler(new RpcError('subscription error', subscriptionError))
-        return
+        throw new RpcError('subscription error', subscriptionError)
       }
 
       const headers = fromStompHeaders(message.headers)
@@ -44,13 +43,12 @@ const subscribeToQueue = (client, destination, handler) =>
         message.readString('utf-8', async (messageError, responseContent) => {
           try {
             if (messageError) {
-              await handler(new RpcError('message parse error', messageError))
-              return resolve()
+              throw new RpcError('message parse error', messageError)
             }
 
             const body = JSON.parse(responseContent)
             const response = {headers, body}
-            resolve(await handler(null, response))
+            resolve(await handler(response))
           } catch (e) {
             reject(e)
           }
@@ -81,7 +79,6 @@ const subscribeRpcHandler = (client, rpcLogger, destination, getSubscriber) =>
     message.readString('utf-8', (messageError, responseContent) => {
       if (messageError) {
         subscriber.reject(new RpcError('message parse error', messageError))
-        return
       }
 
       const body = JSON.parse(responseContent)
