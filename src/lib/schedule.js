@@ -6,21 +6,24 @@ const jobs = {}
 const scheduleJob = (name, spec, func) => {
   let promise = null
   const job = jobs[name]
-  context.logger.info({job: name}, 'JOB_STARTED')
+  context.logger.info({job: name, spec}, 'JOB_SCHEDULED')
 
   if (!job) {
     jobs[name] = schedule.scheduleJob(spec, async () => {
       if (!promise) {
-        context.logger.info('JOB_IN_CYCLE')
-
         promise = func()
-          .then(() => {
-            promise = null
-          })
-          .catch((e) => {
-            logError(e)
-            promise = null
-          })
+
+        if (promise.then) {
+          context.logger.info({job: name}, 'JOB_IN_CYCLE')
+          promise
+            .then(() => {
+              promise = null
+            })
+            .catch((e) => {
+              logError(e)
+              promise = null
+            })
+        }
       }
     })
   }

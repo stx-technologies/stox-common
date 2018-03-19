@@ -38,17 +38,11 @@ class ServiceConfigurationBuilder {
   }
 
   db(databaseUrl, models) {
-    if (!databaseUrl || !models) {
-      throw new Error('ServiceConfigurationBuilder.db missing required param')
-    }
     this.config.databaseUrl = databaseUrl
     this.config.models = models
   }
 
   blockchain(web3Url, contractsDirPath) {
-    if (!web3Url || !contractsDirPath) {
-      throw new Error('ServiceConfigurationBuilder.blockchain missing required param')
-    }
     this.config.web3Url = web3Url
     this.config.contractsDirPath = contractsDirPath
   }
@@ -69,9 +63,6 @@ class ServiceConfigurationBuilder {
   }
 
   addQueues(connectionConfig, {listeners, rpcListeners} = {}) {
-    if (!connectionConfig) {
-      throw new Error('ServiceConfigurationBuilder.addQueues missing required param')
-    }
     this.config.queueConnectionConfig = connectionConfig
     this.config.consumerQueues = ServiceConfigurationBuilder.toQueueSpec(listeners)
     this.config.rpcQueues = ServiceConfigurationBuilder.toQueueSpec(rpcListeners)
@@ -106,11 +97,17 @@ const createService = async (serviceName, builderFunc) => {
 
   const {config} = new ServiceConfigurationBuilder(builderFunc)
 
-  if (config.databaseUrl && config.models) {
+  if (config.databaseUrl) {
+    if (!config.models) {
+      throw new Error('db is missing required \'models\' param')
+    }
     await db.dbInit(config.databaseUrl, config.models)
   }
 
-  if (config.web3Url && config.contractsDirPath) {
+  if (config.web3Url) {
+    if (!config.contractsDirPath) {
+      throw new Error('blockchain is missing required \'contractsDirPath\' param')
+    }
     blockchain.init(config.web3Url, config.contractsDirPath)
   }
 
