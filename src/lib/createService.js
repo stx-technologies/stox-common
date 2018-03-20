@@ -105,9 +105,6 @@ const createService = async (serviceName, builderFunc) => {
   }
 
   if (config.web3Url) {
-    if (!config.contractsDirPath) {
-      throw new Error('blockchain is missing required \'contractsDirPath\' param')
-    }
     blockchain.init(config.web3Url, config.contractsDirPath)
   }
 
