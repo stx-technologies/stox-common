@@ -81,6 +81,16 @@ class ServiceConfigurationBuilder {
   }
 }
 
+const initContext = (ctx, serviceContext) => {
+  Object.keys(ctx).forEach((prop) => {
+    if (prop in serviceContext) {
+      Object.assign(serviceContext[prop], ctx[prop])
+    } else {
+      serviceContext[prop] = ctx[prop]
+    }
+  })
+}
+
 /**
  * @callback builderCallback
  * @param {ServiceConfigurationBuilder} builder
@@ -124,6 +134,4 @@ const createService = async (serviceName, builderFunc) => {
   }
 }
 
-module.exports = {
-  createService,
-}
+module.exports = {createService, initContext}
