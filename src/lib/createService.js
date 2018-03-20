@@ -42,9 +42,10 @@ class ServiceConfigurationBuilder {
     this.config.models = models
   }
 
-  blockchain(web3Url, contractsDirPath) {
+  blockchain(web3Url, contractsDirPath, contractsBinDirPath) {
     this.config.web3Url = web3Url
     this.config.contractsDirPath = contractsDirPath
+    this.config.contractsBinDirPath = contractsBinDirPath
   }
 
   /**
@@ -105,7 +106,7 @@ const createService = async (serviceName, builderFunc) => {
   }
 
   if (config.web3Url) {
-    blockchain.init(config.web3Url, config.contractsDirPath)
+    blockchain.init(config.web3Url, config.contractsDirPath, config.contractsBinDirPath)
   }
 
   if (config.queueConnectionConfig) {

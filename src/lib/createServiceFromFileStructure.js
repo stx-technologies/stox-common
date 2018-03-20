@@ -17,7 +17,7 @@ const requireFromDirname = dirname => (name) => {
 
 module.exports = (
   dirname,
-  {models: modelsInput, contractsDir: contractsInput, name: nameInput} = {}
+  {models: modelsInput, contractsDir: contractsInput, name: nameInput, contractsBinDir: contractsBinInput} = {}
 ) => {
   const builderFunc = (builder) => {
     const requireFile = requireFromDirname(dirname)
@@ -30,7 +30,9 @@ module.exports = (
 
     const models = modelsInput || requireFile('../../common/src/db/models.js')
     const contractsDir =
-    contractsInput || path.resolve(dirname, '../../common/src/services/blockchain/contracts')
+      contractsInput || path.resolve(dirname, '../../common/src/services/blockchain/contracts')
+    const contractsBinDir =
+      contractsBinInput || path.resolve(dirname, '../../common/src/services/blockchain/contractsBin')
 
     const {databaseUrl, mqConnectionUrl, web3Url} = config
 
@@ -54,7 +56,11 @@ module.exports = (
     }
 
     if (web3Url) {
-      builder.blockchain(web3Url, fs.existsSync(contractsDir) ? contractsDir : undefined)
+      builder.blockchain(
+        web3Url,
+        fs.existsSync(contractsDir) ? contractsDir : undefined,
+        fs.existsSync(contractsBinDir) ? contractsBinDir : undefined,
+      )
     }
 
     if (mqConnectionUrl) {
