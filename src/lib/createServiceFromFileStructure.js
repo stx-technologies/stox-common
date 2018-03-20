@@ -53,8 +53,8 @@ module.exports = (
       builder.addJobs(jobs)
     }
 
-    if (web3Url && fs.existsSync(contractsDir)) {
-      builder.blockchain(web3Url, contractsDir)
+    if (web3Url) {
+      builder.blockchain(web3Url, fs.existsSync(contractsDir) ? contractsDir : undefined)
     }
 
     if (mqConnectionUrl) {
