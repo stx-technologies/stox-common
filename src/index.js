@@ -1,4 +1,4 @@
-const {createService} = require('./lib/createService')
+const {createService, initContext} = require('./lib/createService')
 const createServiceFromFileStructure = require('./lib/createServiceFromFileStructure')
 const schedule = require('./lib/schedule')
 const errors = require('./lib/errors')
@@ -7,6 +7,7 @@ const utils = require('./utils')
 
 module.exports = {
   createService,
+  initContext,
   schedule,
   errors,
   http,
