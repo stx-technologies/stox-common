@@ -2,6 +2,10 @@ const serviceContext = require('../context')
 const {RpcError} = require('../errors')
 const stompit = require('stompit')
 const {toStompHeaders, fromStompHeaders, toConnectionConfig} = require('./utils')
+const {promisify} = require('util')
+const context = require('../context')
+
+const asyncTimeout = promisify(setTimeout)
 
 const parseMessage = message =>
   new Promise((resolve, reject) =>
@@ -164,9 +168,9 @@ const respondToRpc = (client, message, handler, body) =>
         resolve({headers: successHeaders, response})
       })
       .catch((handlerError) => {
-        const {message: errorMessage, context} = handlerError
+        const {message: errorMessage, context: errorContext} = handlerError
         const failureHeaders = {...headers, ok: false}
-        sendFrame(client, {message: errorMessage, context}, failureHeaders)
+        sendFrame(client, {message: errorMessage, context: errorContext}, failureHeaders)
         reject(handlerError)
       })
   })
@@ -186,17 +190,34 @@ class StompitClient {
   }
 }
 
-const connectToStompit = (configOrConnectionString) => {
+const connectToStompit = async (configOrConnectionString) => {
   const config = toConnectionConfig(configOrConnectionString)
+  const maxRetries = 20
+  let retryCount = 0
 
-  return new Promise((resolve, reject) =>
-    stompit.connect(config, (error, stompitClient) => {
-      if (error) {
-        reject(new RpcError('failed to connect to ActiveMQ', {config, error}))
-        return
-      }
-      resolve(stompitClient)
-    }))
+  const {logger} = context
+
+  while (retryCount < maxRetries) {
+    try {
+      const connection = await new Promise((resolve, reject) =>
+        stompit.connect(config, (error, stompitClient) => {
+          if (error) {
+            reject(new RpcError('failed to connect to ActiveMQ', {config, error}))
+            return
+          }
+          resolve(stompitClient)
+        }))
+
+      return connection
+    } catch (error) {
+      logger.error(error)
+      logger.info('retrying...')
+      await asyncTimeout(3000)
+      retryCount++
+    }
+  }
+
+  throw new RpcError('Could not connect to ActiveMQ', {config})
 }
 
 const createStompitClientFactory = ClientType => (configOrConnectionString, options) =>
