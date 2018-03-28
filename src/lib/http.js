@@ -25,12 +25,10 @@ const http = (baseURL, errorMsg = 'request failed') => {
   }
 
   return ['post', 'delete', 'put'].reduce((caller, method) => {
-    if (!(method in caller)) {
-      caller[method] = (...args) =>
-        ax[method](...args)
-          .then(res => res.data)
-          .catch(errorHandle)
-    }
+    caller[method] = (...args) =>
+      ax[method](...args)
+        .then(res => res.data)
+        .catch(errorHandle)
     return caller
   }, {get})
 }
