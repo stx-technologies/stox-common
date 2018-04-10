@@ -10,7 +10,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@bitbucket.org:stx_site/stox-common.git#dev"
+    "url": "git+https://bitbucket.org/stx_site/stox-common.git"
   },
   "keywords": [
     "stox"
