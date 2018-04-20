@@ -46,7 +46,7 @@ const initExpress = async (config) => {
     try {
       const server = app.listen(config.port, () => {
         logger.info({binding: server.address()}, 'HTTP_SERVER_STARTED')
-        resolve(app)
+        resolve(server)
       })
     } catch (e) {
       logger.error(e)
