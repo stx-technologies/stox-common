@@ -21,7 +21,7 @@ const initRouter = (initRoutes, jwtSecret) => {
   return router
 }
 
-const initExpress = async (config) => {
+const initExpress = async (config, serviceName) => {
   const {logger} = context
   const app = express()
   if (config.cors) {
@@ -29,7 +29,11 @@ const initExpress = async (config) => {
   }
   app.use(compression())
   app.use(bodyParser.json())
-  app.use(expressLogger())
+
+  const apiLogger = expressLogger()
+  Object.assign(apiLogger.logger, apiLogger.logger.child({name: serviceName}))
+  app.use(apiLogger)
+
   if (config.clientRootDist) {
     app.use(lusca.xframe('SAMEORIGIN'))
     app.use(lusca.xssProtection(true))
