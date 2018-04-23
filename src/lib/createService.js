@@ -123,7 +123,7 @@ const createService = async (serviceName, builderFunc) => {
     await initQueues(config)
   }
 
-  const apis = await Promise.all(config.apis.map(apiServerConfig => initExpress(apiServerConfig)))
+  const apis = await Promise.all(config.apis.map(apiServerConfig => initExpress(apiServerConfig, serviceName)))
   config.jobs.forEach(({name, cron, job}) => scheduleJob(name, cron, job))
 
   return {
