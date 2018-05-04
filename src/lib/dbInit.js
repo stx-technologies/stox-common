@@ -1,6 +1,7 @@
 const Sequelize = require('sequelize')
 const {promisify} = require('util')
 const context = require('./context')
+const {logError} = require('./errors')
 
 const asyncTimeout = promisify(setTimeout)
 
@@ -36,7 +37,7 @@ const dbInit = async (pgurl = null, dbModel) => {
   try {
     return await connect(pgurl, dbModel)
   } catch (error) {
-    logger.error(error)
+    logError(error)
     retryCount++
 
     if (maxRetries < retryCount) {
