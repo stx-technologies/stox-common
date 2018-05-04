@@ -3,6 +3,8 @@ const RpcServer = require('./server')
 const PubsubClient = require('./pubsub')
 const RpcRouter = require('./router')
 const {connectToStompit} = require('./mq')
+const context = require('../context')
+const {logError} = require('../errors')
 
 const mq = {}
 
@@ -14,35 +16,32 @@ const defaultOptions = {
  * Creates a MQ connection
  * @param {*} connectOptions {@link RpcClient#connect}
  */
-const createMqConnections = (connectOptions, options = {}) => {
-  const mqConnections = connectToStompit(connectOptions).then(stompit => ({
-    rpcClient: new RpcClient(stompit, options.rpcClient),
-    rpcServer: new RpcServer(stompit, options.rpcServer),
-    pubsubClient: new PubsubClient(stompit, options.pubsubClient),
-  }))
-
-  const publish = (queue, content, headers = {}) =>
-    mqConnections.then(({pubsubClient}) => pubsubClient.publish(queue, content, headers))
+const createMqConnections = ({pubsubClient, rpcClient}) => {
+  const publish = (queue, content, headers = {}) => pubsubClient.publish(queue, content, headers)
 
   const subscribe = (queue, handler) => {
-    const subscriptionPromise = mqConnections.then(({pubsubClient}) =>
-      pubsubClient.subscribe(queue, handler))
+    const subscriptionPromise = pubsubClient.subscribe(queue, handler)
     return {
       unsubscribe: () => subscriptionPromise.then(s => s.unsubscribe()),
     }
   }
+  const rpc = (method, body = {}, headers = {}) => rpcClient.call(method, body, {...defaultOptions, headers})
 
-  const rpc = (method, body = {}, headers = {}) =>
-    mqConnections.then(({rpcClient}) => rpcClient.call(method, body, {...defaultOptions, headers}))
-
-  Object.assign(mq, {rpc, publish, subscribe, mqConnections})
-
-  return mq
+  Object.assign(mq, {rpc, publish, subscribe})
 }
 
 const initQueues = async ({queueConnectionConfig, consumerQueues, rpcQueues}) => {
-  const {mqConnections} = await createMqConnections(queueConnectionConfig)
-  const {rpcServer, pubsubClient} = await mqConnections
+  const stompit = await connectToStompit(queueConnectionConfig)
+  stompit.on('error', (error) => {
+    context.logger.error('Queue failed stopping service')
+    logError(error)
+    process.exit(1)
+  })
+  const rpcServer = new RpcServer(stompit)
+  const pubsubClient = new PubsubClient(stompit)
+  const rpcClient = new RpcClient(stompit)
+
+  createMqConnections({pubsubClient, rpcClient})
   consumerQueues.forEach(({method, handler}) => pubsubClient.subscribe(method, handler))
 
   const rpcRouter = new RpcRouter()
