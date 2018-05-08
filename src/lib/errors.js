@@ -60,4 +60,5 @@ module.exports = {
   logError,
   DbError,
   RpcError,
+  errSerializer,
 }
