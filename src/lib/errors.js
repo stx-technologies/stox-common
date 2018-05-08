@@ -24,7 +24,7 @@ class DbError extends Error {
 }
 
 const errSerializer = (err) => {
-  if (err.toJSON) {
+  if (err && err.toJSON) {
     return err.toJSON()
   } else if (err instanceof Error) {
     return assignWith(
