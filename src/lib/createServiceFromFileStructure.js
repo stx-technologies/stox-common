@@ -19,15 +19,18 @@ const requireFromDirname = dirname => (name) => {
 module.exports = async (dirname, env, region) => {
   const {name} = require(path.resolve(dirname, '../package.json'))
   const requireFile = requireFromDirname(dirname)
-  const config = env && region
-    ? await getEnvForService(name, env, region)
-    : requireFile('config.js')
+  const config = requireFile('config.js')
+
+  if (env && region){
+    const ssmConfig = await getEnvForService(name, env, region)
+    Object.assign(config, ssmConfig)
+  }
 
   if (!config) {
     throw new Error('cannot get service config')
   }
 
-  console.log({config})
+  console.log('CONFIGURATION', {config})
 
   const models = requireFile('../../common/src/db/models.js')
   const contractsDir = path.resolve(dirname, '../../common/src/services/blockchain/contracts')
