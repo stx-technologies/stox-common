@@ -2,6 +2,7 @@
 const requireAll = require('require-all')
 const path = require('path')
 const {createService} = require('./createService')
+const {getEnvForService} = require('./ssm')
 const fs = require('fs')
 
 const requireFromDirname = dirname => (name) => {
@@ -15,27 +16,25 @@ const requireFromDirname = dirname => (name) => {
   return undefined
 }
 
-module.exports = (
-  dirname,
-  {models: modelsInput, contractsDir: contractsInput, name: nameInput, contractsBinDir: contractsBinInput} = {}
-) => {
+module.exports = async (dirname, env, region) => {
+  const {name} = require(path.resolve(dirname, '../package.json'))
+  const requireFile = requireFromDirname(dirname)
+  const config = env && region
+    ? await getEnvForService(name, env, region)
+    : requireFile('config.js')
+
+  if (!config) {
+    throw new Error('cannot get service config')
+  }
+
+  console.log({config})
+
+  const models = requireFile('../../common/src/db/models.js')
+  const contractsDir = path.resolve(dirname, '../../common/src/services/blockchain/contracts')
+  const contractsBinDir = path.resolve(dirname, '../../common/src/services/blockchain/contractsBin')
+  const {databaseUrl, mqConnectionUrl, web3Url} = config
+
   const builderFunc = (builder) => {
-    const requireFile = requireFromDirname(dirname)
-
-    const config = requireFile('config.js')
-
-    if (!config) {
-      throw new Error('Cannot initialize service without config.js')
-    }
-
-    const models = modelsInput || requireFile('../../common/src/db/models.js')
-    const contractsDir =
-      contractsInput || path.resolve(dirname, '../../common/src/services/blockchain/contracts')
-    const contractsBinDir =
-      contractsBinInput || path.resolve(dirname, '../../common/src/services/blockchain/contractsBin')
-
-    const {databaseUrl, mqConnectionUrl, web3Url} = config
-
     const api = requireFile('api.js')
     if (api) {
       builder.addApi(api)
@@ -59,7 +58,7 @@ module.exports = (
       builder.blockchain(
         web3Url,
         fs.existsSync(contractsDir) ? contractsDir : undefined,
-        fs.existsSync(contractsBinDir) ? contractsBinDir : undefined,
+        fs.existsSync(contractsBinDir) ? contractsBinDir : undefined
       )
     }
 
@@ -69,7 +68,6 @@ module.exports = (
       builder.addQueues(mqConnectionUrl, {listeners, rpcListeners})
     }
   }
-  const name = nameInput || require(path.resolve(dirname, '../package.json')).name
 
   return createService(name, builderFunc)
 }

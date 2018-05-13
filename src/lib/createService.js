@@ -22,14 +22,6 @@ const defaultConfig = {
 
 const queueCallback = (message) => {} // eslint-disable-line no-unused-vars
 const noopJobDefinition = {cron: '', job: () => {}} // eslint-disable-line no-unused-vars
-const noopServerConfigDefinition = { // eslint-disable-line no-unused-vars
-  port: 0,
-  version: 1,
-  routes: (router, createEndpoint, secure) => {}, // eslint-disable-line no-unused-vars
-  cors: false,
-  jwtSecret: '',
-  clientRootDist: '',
-}
 
 class ServiceConfigurationBuilder {
   constructor(builderFunc) {
@@ -48,9 +40,6 @@ class ServiceConfigurationBuilder {
     this.config.contractsBinDirPath = contractsBinDirPath
   }
 
-  /**
-   * @param {noopServerConfigDefinition} apiServerConfig
-   */
   addApi(apiServerConfig) {
     this.config.apis.push(apiServerConfig)
   }
