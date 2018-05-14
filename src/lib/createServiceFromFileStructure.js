@@ -32,8 +32,6 @@ module.exports = async (dirname, env, region) => {
     throw new Error('cannot get service config')
   }
 
-  console.log('CONFIGURATION', {config})
-
   const models = requireFile('../../common/src/db/models.js')
   const contractsDir = path.resolve(dirname, '../../common/src/services/blockchain/contracts')
   const contractsBinDir = path.resolve(dirname, '../../common/src/services/blockchain/contractsBin')

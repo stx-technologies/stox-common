@@ -1,6 +1,6 @@
 const awsParamStore = require('aws-param-store')
 const dotenv = require('dotenv')
-const {forEach, reject, find, camelCase} = require('lodash')
+const {forEach, reject, find, camelCase, map} = require('lodash')
 
 const newQuery = async (path, region) => awsParamStore.newQuery(path, {region}).execute()
 
@@ -9,48 +9,49 @@ const getEnvForService = async (name, subsystemName, env, region) => {
     throw new Error('name, env or region cannot be empty ')
   }
 
-  const envVars = []
+  const config = []
   const envKey = `/BC/${env.toUpperCase()}`
+  const subsystemKey = `${envKey}/${subsystemName.toUpperCase()}`
   const serviceKey = `${envKey}/${name.toUpperCase()}/CONFIG`
   const parameters = await newQuery(envKey, region)
 
-  console.log({parameters})
+  console.log({name, subsystemName, env, region})
+  console.log(map(parameters, param => param.Name))
 
   if (!parameters.length) {
-    throw new Error(`no parameters in parameters store for name '${envKey}'`)
+    throw new Error(`no parameters in parameters store for '${envKey}'`)
   }
 
   const serviceParams = find(parameters, p => p.Name === serviceKey)
 
   if (!serviceParams) {
-    throw new Error(`no parameters in parameters store for name '${serviceKey}'`)
+    throw new Error(`no parameters in parameters store for '${serviceKey}'`)
   }
 
-  if (serviceParams) {
-    const envParams = reject(parameters, p => p.Name === serviceKey)
-    const params = dotenv.parse(serviceParams.Value)
+  const envParams = reject(parameters, p => p.Name === serviceKey)
+  const parsedServiceParams = dotenv.parse(serviceParams.Value)
 
-    forEach(params, (value, key) => {
-      const parameter = find(envParams, e => {
-        const subsystemKey = `${subsystemName.toUpperCase()}/${key}`
-        const idx1 = e.Name.indexOf(subsystemKey)
-        if (idx1 !== -1) {
-          return e.Name.substr(idx1) === subsystemKey
-        }
+  console.log(map(parsedServiceParams, (value, key) => key))
 
-        return e.Name.split('/').slice(-1).pop() === key
-      })
-      const configKey = camelCase(key)
+  forEach(parsedServiceParams, (value, key) => {
+    const serviceSubsystemKey = `${subsystemKey}/${key}`
+    let parameter = envParams.find(p => p.Name === serviceSubsystemKey)
 
-      if (!envVars[configKey]) {
-        envVars[configKey] = parameter ? parameter.Value : value
-      }
-    })
-  }
+    if (!parameter) {
+      parameter = envParams.find(p => p.Name.split('/').splice(-1).pop() === key)
+    }
 
-  console.log({config: envVars})
+    const configKey = camelCase(key)
+    const configValue = parameter ? parameter.Value : value
 
-  return envVars
+    if (!config[configKey]) {
+      config[configKey] = configValue.replace(/(\r\n\t|\n|\r\t)/gm, '')
+    }
+  })
+
+  console.log(config)
+
+  return config
 }
 
 module.exports = {getEnvForService}
