@@ -18,11 +18,13 @@ const requireFromDirname = dirname => (name) => {
 
 module.exports = async (dirname, env, region) => {
   const {name} = require(path.resolve(dirname, '../package.json'))
+  const subsystemName = require(path.resolve(dirname, '../../../package.json')).name
+
   const requireFile = requireFromDirname(dirname)
   const config = requireFile('config.js')
 
   if (env && region){
-    const ssmConfig = await getEnvForService(name, env, region)
+    const ssmConfig = await getEnvForService(name, subsystemName, env, region)
     Object.assign(config, ssmConfig)
   }
 
