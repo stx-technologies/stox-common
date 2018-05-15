@@ -1,6 +1,6 @@
 const awsParamStore = require('aws-param-store')
 const dotenv = require('dotenv')
-const {forEach, reject, find, camelCase, map} = require('lodash')
+const {forEach, reject, find, camelCase} = require('lodash')
 
 const newQuery = async (path, region) => awsParamStore.newQuery(path, {region}).execute()
 
@@ -15,9 +15,6 @@ const getEnvForService = async (name, subsystemName, env, region) => {
   const serviceKey = `${envKey}/${name.toUpperCase()}/CONFIG`
   const parameters = await newQuery(envKey, region)
 
-  console.log({name, subsystemName, env, region})
-  console.log(map(parameters, param => param.Name))
-
   if (!parameters.length) {
     throw new Error(`no parameters in parameters store for '${envKey}'`)
   }
@@ -30,8 +27,6 @@ const getEnvForService = async (name, subsystemName, env, region) => {
 
   const envParams = reject(parameters, p => p.Name === serviceKey)
   const parsedServiceParams = dotenv.parse(serviceParams.Value)
-
-  console.log(map(parsedServiceParams, (value, key) => key))
 
   forEach(parsedServiceParams, (value, key) => {
     const serviceSubsystemKey = `${subsystemKey}/${key}`
@@ -48,8 +43,6 @@ const getEnvForService = async (name, subsystemName, env, region) => {
       config[configKey] = configValue.replace(/(\r\n\t|\n|\r\t)/gm, '')
     }
   })
-
-  console.log(config)
 
   return config
 }

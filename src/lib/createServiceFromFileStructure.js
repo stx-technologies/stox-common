@@ -23,7 +23,7 @@ module.exports = async (dirname, env, region) => {
   const requireFile = requireFromDirname(dirname)
   const config = requireFile('config.js')
 
-  if (env && region){
+  if (env && region) {
     const ssmConfig = await getEnvForService(name, subsystemName, env, region)
     Object.assign(config, ssmConfig)
   }
