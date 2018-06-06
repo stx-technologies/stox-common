@@ -17,6 +17,7 @@ const http = (baseURL) => {
     const stack = (response.data && response.data.stack) || ''
     return Promise.reject(new HttpError(errCode, errorMsg, {stack}))
   }
+
   const get = (url, params = {}) => {
     const query =
       Object.entries(params).reduce((str, [key, value]) => `${str}${str && '&'}${key}=${value}`, '')
