@@ -1,20 +1,21 @@
 const axios = require('axios')
-const {exceptions: {UnexpectedError}} = require('@welldone-software/node-toolbelt')
+const HttpError = require('standard-http-error')
 
-const http = (baseURL, errorMsg = 'request failed') => {
+const http = (baseURL) => {
   const ax = axios.create({
     baseURL,
     responseType: 'json',
   })
 
   const errorHandle = (err) => {
-    const error = Object.assign(err, {
-      config: undefined,
-      request: undefined,
-      response: err.response && err.response.data,
-    })
-
-    return Promise.reject(new UnexpectedError(errorMsg, error))
+    if (err.code === 'ECONNREFUSED') {
+      return Promise.reject(new HttpError(502, 'ECONNREFUSED'))
+    }
+    const response = err.response || {}
+    const errCode = response.status || 500
+    const errorMsg = (response.data && response.data.message) || 'request failed'
+    const stack = (response.data && response.data.stack) || ''
+    return Promise.reject(new HttpError(errCode, errorMsg, {stack}))
   }
   const get = (url, params = {}) => {
     const query =
