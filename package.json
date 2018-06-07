@@ -39,6 +39,7 @@
     "pg-hstore": "^2.3.2",
     "require-all": "^2.2.0",
     "sequelize": "^4.33.4",
+    "standard-http-error": "^2.0.1",
     "stompit": "^0.25.0",
     "uuid": "^3.2.1",
     "web3": "^1.0.0-beta.34"
