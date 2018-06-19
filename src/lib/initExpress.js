@@ -1,7 +1,7 @@
 const express = require('express')
 const compression = require('compression')
 const bodyParser = require('body-parser')
-const expressStatusMonitor = require('express-status-monitor')
+// const expressStatusMonitor = require('express-status-monitor')
 const {
   jwt: {jwtRequest, jwtSecure},
   loggers: {expressLogger},
@@ -43,7 +43,7 @@ const initExpress = async (config, serviceName) => {
   app.set('trust proxy', 'loopback')
   app.disable('x-powered-by')
   app.use(`/api/v${config.version}`, initRouter(config.routes, config.jwtSecret))
-  app.use(expressStatusMonitor())
+  // app.use(expressStatusMonitor())
   app.use(errorHandler)
 
   return new Promise((resolve, reject) => {
