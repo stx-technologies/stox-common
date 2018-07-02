@@ -2,13 +2,14 @@ const Web3 = require('web3')
 const fs = require('fs')
 const path = require('path')
 const context = require('./context')
+const HttpProvider = require('./http-provider')
 
 const blockchain = {
   web3: {},
 }
 
 blockchain.init = (web3Url, contractsDirPath, contractsBinDirPath) => {
-  const web3 = new Web3(new Web3.providers.HttpProvider(web3Url))
+  const web3 = new Web3(new HttpProvider(web3Url))
   Object.assign(blockchain.web3, web3)
 
   if (contractsDirPath) {
