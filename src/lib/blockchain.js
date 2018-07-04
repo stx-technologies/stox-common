@@ -2,7 +2,7 @@ const Web3 = require('web3')
 const fs = require('fs')
 const path = require('path')
 const context = require('./context')
-const HttpProvider = require('./http-provider')
+const HttpProvider = require('./web3CustomHttpProvider')
 
 const blockchain = {
   web3: {},

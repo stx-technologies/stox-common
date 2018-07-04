@@ -14,16 +14,16 @@ class FixedHttpProvider extends HttpProvider {
       if (request.readyState === 4 && request.timeout !== 1) {
         let result = request.responseText
         let error = null
-        if (request.status === 0 || request.status >= 400) {
-          _this.connected = false
-          error = new HttpError(request.status, {responseText: result, reason: 'bcNodeError'})
-        } else {
+        if (request.status >= 200 && request.status < 300) {
           try {
             result = JSON.parse(result)
           } catch (e) {
             error = errors.InvalidResponse(request.responseText)
           }
           _this.connected = true
+        } else {
+          _this.connected = false
+          error = new HttpError(request.status, {responseText: result, reason: 'bcNodeError'})
         }
         callback(error, result)
       }

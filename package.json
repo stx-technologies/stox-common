@@ -42,9 +42,7 @@
     "standard-http-error": "^2.0.1",
     "stompit": "^0.25.0",
     "uuid": "^3.2.1",
-    "web3": "^1.0.0-beta.34",
-    "web3-core-helpers": "1.0.0-beta.34",
-    "xhr2": "0.1.4"
+    "web3": "^1.0.0-beta.34"
   },
   "pre-commit": [
     "precommit"
