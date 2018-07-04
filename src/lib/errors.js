@@ -50,10 +50,9 @@ class RpcError extends Error {
   }
 }
 
-const logError = (err) => {
+const logError = (err, msg) => {
   const error = errSerializer(err)
-  delete error.code
-  serviceContext.logger.error(error)
+  serviceContext.logger.error(error, msg)
 }
 
 module.exports = {
