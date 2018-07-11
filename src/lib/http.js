@@ -8,14 +8,14 @@ const http = (baseURL) => {
   })
 
   const errorHandle = (err) => {
-    if (err.code === 'ECONNREFUSED') {
-      return Promise.reject(new HttpError(502, 'ECONNREFUSED'))
+    if (!err.response) {
+      return Promise.reject(new HttpError(502, err.code))
     }
     const response = err.response || {}
     const errCode = response.status || 500
-    const errorMsg = (response.data && response.data.message) || 'request failed'
+    const errorData = response.data || 'request failed'
     const stack = (response.data && response.data.stack) || ''
-    return Promise.reject(new HttpError(errCode, errorMsg, {stack}))
+    return Promise.reject(new HttpError(errCode, errorData, {stack}))
   }
 
   const get = (url, params = {}) => {
