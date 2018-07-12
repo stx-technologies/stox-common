@@ -1,5 +1,9 @@
 const serviceContext = require('./context')
 const {assignWith} = require('lodash')
+const HttpError = require('standard-http-error')
+const {escapeRegExp} = require('lodash')
+
+const stackFileRegex = new RegExp(`${escapeRegExp(process.cwd())}`, 'ig')
 
 const assignWithCustomizer = (objValue, srcValue) => (objValue === undefined ? srcValue : objValue)
 
@@ -55,9 +59,28 @@ const logError = (err, msg) => {
   serviceContext.logger.error(error, msg)
 }
 
+// eslint-disable-next-line no-unused-vars
+const errorHandler = (err, req, res, next) => {
+  const status =
+    err.httpErrorCode ||
+    err.status ||
+    (err instanceof HttpError && err.code) ||
+    500
+  res.status(status).send({
+    ...err,
+    message: err.message,
+    stack:
+      process.env.NODE_ENV === 'production'
+        ? undefined
+        : (err.stack || '').replace(stackFileRegex, ''),
+  })
+  res.emit('error', err) // pino.js handle error log in this way
+}
+
 module.exports = {
   logError,
   DbError,
   RpcError,
   errSerializer,
+  errorHandler,
 }

@@ -5,12 +5,13 @@ const bodyParser = require('body-parser')
 const {
   jwt: {jwtRequest, jwtSecure},
   loggers: {expressLogger},
-  expressHelpers: {errorHandler, createApiEndpoint},
+  expressHelpers: {createApiEndpoint},
 } = require('@welldone-software/node-toolbelt')
 const fallback = require('express-history-api-fallback')
 const lusca = require('lusca')
 const cors = require('cors')
 const context = require('./context')
+const {errorHandler} = require('./errors')
 
 const initRouter = (initRoutes, jwtSecret) => {
   const router = new express.Router()
