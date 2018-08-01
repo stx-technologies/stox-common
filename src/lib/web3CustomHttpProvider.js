@@ -1,3 +1,4 @@
+/* eslint-disable no-underscore-dangle,import/no-extraneous-dependencies */
 const HttpError = require('standard-http-error')
 const web3 = require('web3')
 const {errors} = require('web3-core-helpers')
@@ -5,7 +6,6 @@ const {errors} = require('web3-core-helpers')
 const {HttpProvider} = web3.providers
 
 class FixedHttpProvider extends HttpProvider {
-
   send(payload, callback) {
     const _this = this
     const request = this._prepareRequest()

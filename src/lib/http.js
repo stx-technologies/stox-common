@@ -19,9 +19,13 @@ const http = (baseURL) => {
   }
 
   const get = (url, params = {}) => {
-    const query =
-      Object.entries(params).reduce((str, [key, value]) => `${str}${str && '&'}${key}=${value}`, '')
-    return ax.get(`${url}${query && '?'}${query}`)
+    const queryString =
+      Object.entries(params).reduce((str, [key, value]) => {
+        const nextValue = value && (`${str && '&'}${key}=${value}`)
+        return nextValue ? str + nextValue : str
+      }, '')
+    const query = queryString ? `?${queryString}` : ''
+    return ax.get(`${url}${query}`)
       .then(res => res.data)
       .catch(errorHandle)
   }
