@@ -5,6 +5,7 @@ const errors = require('./lib/errors')
 const http = require('./lib/http')
 const utils = require('./utils')
 const {initQueues} = require('./lib/mq')
+const ssm = require('./lib/ssm')
 
 module.exports = {
   createService,
@@ -15,4 +16,5 @@ module.exports = {
   http,
   utils,
   createServiceFromFileStructure,
+  ssm,
 }
