@@ -16,9 +16,11 @@ const fromStompHeaders = makeHeaderParser(camelCase)
 
 const stripSlash = method => (method[0] === '/' ? method.substr(1) : method)
 
+// syntax: protocol://user:password@hostname:12345/seg1/seg2?p1=val1&p2=val2
+// example: user:password@localhost:61613
 const parseConnectionString = (path) => {
   const {hostname: host, port = 61613, user: login, password: passcode} = connectionString(path)
-  return {host, port, connectHeaders: {login, passcode}}
+  return {host, port, connectHeaders: {login, passcode, host}}
 }
 
 const toConnectionConfig = configOrConnectionString =>
